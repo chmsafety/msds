@@ -529,6 +529,8 @@ async function handleFiles(files){
   await loadAll(); renderMsds();
 }
 function productFromExtract(ex){
+  if((!ex.pictograms||!ex.pictograms.length)&&ex.hcodes?.length){let pics=uniq(ex.hcodes.map(pictFromH));if(pics.includes('GHS06'))pics=pics.filter(c=>c!=='GHS07');ex.pictograms=pics;}
+  if(!ex.ppe||!ex.ppe.length) ex.ppe=['보안경','안전장갑','안전복','방독마스크'];
   return {name:ex.name||'(제품명 미확인)',manufacturer:ex.manufacturer||null,supplier_phone:ex.phone||null,signal_word:ex.signal||'해당없음',pictograms:ex.pictograms||[],hazard_statements:ex.hazard||[],precautionary:ex.prec||[],components:ex.components||[],
     special_exam:!!ex.special_exam,special_exam_agents:ex.agents||[],managed_substance:!!ex.managed,special_managed:!!ex.special_managed,permit_substance:!!ex.permit,exposure_measure:!!ex.measure,
     handling:ex.handling||null,ppe:ex.ppe||[],first_aid:ex.first_aid||null,spill:ex.spill||null,legal:ex.legal||null,nfpa:ex.nfpa||null,other_hazard:ex.other||null,extract_method:ex.extract_method||'rule',reviewed:false};
@@ -652,7 +654,7 @@ $('e_ai').onclick=async()=>{
   try{
     let text=ED.extracted?.text||''; let pdf_base64=null;
     if(text.replace(/\s/g,'').length<200&&ED.pdf_path){const {data,error}=await sb.storage.from('msds-pdf').download(ED.pdf_path);if(error)throw error;const b=await data.arrayBuffer();pdf_base64=btoa(String.fromCharCode(...new Uint8Array(b)));}
-    const {data,error}=await sb.functions.invoke(CONFIG.EXTRACT_FN,{body:{text,pdf_base64}}); if(error) throw error; if(data?.error) throw new Error(data.error);
+    const {data,error}=await sb.functions.invoke(CONFIG.EXTRACT_FN,{body:{text,pdf_base64}}); if(error){let m=error.message;try{const j=await error.context.json();if(j?.error)m=j.error;}catch(_){}throw new Error(m);} if(data?.error) throw new Error(data.error);
     const ex=data.result; const p=productFromExtract(ex); p.extract_method='ai'; delete p.reviewed;
     const keep=['pictograms','ppe']; Object.assign(ED,p); ED.extracted={...(ED.extracted||{}),ai:ex};
     if(ED.id){await sb.from('msds_products').update({...p,extracted:ED.extracted}).eq('id',ED.id);await loadAll();}
@@ -784,9 +786,9 @@ function renderSet(){
 $('nuAdd').onclick=async()=>{const b={action:'create',name:$('nuName').value.trim(),email:$('nuEmail').value.trim(),password:$('nuPw').value,role:$('nuRole').value,site_id:$('nuSite').value||null};
   if(!b.name||!b.email||b.password.length<6)return toast('이름·이메일·6자 이상 비밀번호를 입력하세요.');$('nuAdd').disabled=true;
   const {data,error}=await sb.functions.invoke('msds-admin',{body:b});$('nuAdd').disabled=false;
-  if(error||data?.error)return toast('실패: '+(data?.error||error.message));toast('계정을 만들었습니다.');['nuName','nuEmail','nuPw'].forEach(i=>$(i).value='');await loadAll();renderSet();};
+  if(error||data?.error){let m=data?.error||error.message;try{const j=await error.context.json();if(j?.error)m=j.error;}catch(_){}return toast('실패: '+m);}toast('계정을 만들었습니다.');['nuName','nuEmail','nuPw'].forEach(i=>$(i).value='');await loadAll();renderSet();};
 async function resetPw(id,name){const pw=prompt(`${name} 님의 새 비밀번호 (6자 이상)`);if(!pw)return;if(pw.length<6)return toast('6자 이상이어야 합니다.');
-  const {data,error}=await sb.functions.invoke('msds-admin',{body:{action:'reset_password',user_id:id,password:pw}});if(error||data?.error)return toast('실패: '+(data?.error||error.message));toast('비밀번호를 변경했습니다.');}
+  const {data,error}=await sb.functions.invoke('msds-admin',{body:{action:'reset_password',user_id:id,password:pw}});if(error||data?.error){let m=data?.error||error.message;try{const j=await error.context.json();if(j?.error)m=j.error;}catch(_){}return toast('실패: '+m);}toast('비밀번호를 변경했습니다.');}
 $('stSiteAdd').onclick=async()=>{const name=$('stSiteName').value.trim();if(!name)return;const r=await sb.from('msds_sites').insert({name,code:$('stSiteCode').value.trim()||null});if(r.error)return toast(r.error.message);$('stSiteName').value='';$('stSiteCode').value='';await loadAll();renderSet();};
 async function delSite(id){if(!confirm('사업장을 삭제할까요? 보유 제품 연결·근로자 정보도 함께 삭제됩니다.'))return;const r=await sb.from('msds_sites').delete().eq('id',id);if(r.error)return toast(r.error.message);await loadAll();renderSet();}
 
