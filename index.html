@@ -72,12 +72,12 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
 
 /* ===== 경고표지 ===== */
 .lbl{background:#fff;color:#000;border:2px solid #000;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}
-.lbl .nm{font-weight:900;text-align:center;border-bottom:1.5px solid #000;padding:2% 3%;line-height:1.15}
-.lbl .mid{display:flex;align-items:center;gap:3%;padding:2% 3%}
+.lbl .nm{font-weight:900;text-align:center;border-bottom:1.5px solid #000;overflow:hidden;word-break:keep-all}
+.lbl .mid{display:flex;align-items:center;flex:0 0 auto}
 .lbl .pics{display:flex;gap:2%;flex:1;flex-wrap:wrap}.lbl .pics svg{aspect-ratio:1}
 .lbl .sig{font-weight:900;flex:0 0 auto;padding:0 3%}
-.lbl .st{padding:1% 3%;line-height:1.3;flex:1;overflow:hidden}.lbl .st b{display:block;margin-top:1%}
-.lbl .sup{border-top:1.5px solid #000;padding:1.5% 3%;line-height:1.3}
+.lbl .st{flex:0 0 auto;word-break:keep-all}
+.lbl .sup{border-top:1.5px solid #000;word-break:keep-all}
 
 @media print{
   body{background:#fff}header,nav,.noprint,.toast{display:none!important}main{max-width:none;padding:0}
@@ -162,7 +162,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
       <div><label class="f">용기 형태</label><select id="lbShape"><option value="cyl">원통</option><option value="box">사각</option></select></div>
     </div>
     <div class="alert" id="lbInfo" style="margin-top:12px"></div>
-    <div class="row"><label class="chk auto"><input type="checkbox" id="lbForceSmall"> 소량용기 간이표시(4개 항목)로 작성</label>
+    <div class="row"><label class="chk auto"><input type="checkbox" id="lbForceSmall"> 100ml(100g) 이하 소량용기 → 간이표시(4개 항목)로 작성 <span class="mut">(초과 용기는 6개 항목 자동)</span></label>
       <div class="auto" style="margin-left:auto"><label class="f" style="display:inline">1장당 매수</label> <input id="lbCopies" type="number" value="1" min="1" max="40" style="width:70px;display:inline"> <button class="btn pri" id="lbPrint">🖨 출력</button></div></div>
   </div>
   <div class="card printarea" id="lbArea"><div id="lbPreview" style="display:flex;flex-wrap:wrap;gap:6mm"></div></div>
@@ -667,6 +667,7 @@ $('e_ai').onclick=async()=>{
 function productOptions(sel){const list=S.products.filter(p=>isAdmin()||!S.profile.site_id||S.sp.some(x=>x.product_id===p.id&&x.site_id===S.profile.site_id));sel.innerHTML='<option value="">제품 선택</option>'+list.map(p=>`<option value="${p.id}">${esc(p.name)}${p.reviewed?'':' (검수대기)'}</option>`).join('');}
 function renderLabelPage(){const cur=$('lbProduct').value;productOptions($('lbProduct'));if(cur)$('lbProduct').value=cur;renderLabel();}
 ['lbProduct','lbVol','lbUnit','lbRatio','lbH','lbD','lbShape','lbForceSmall','lbCopies'].forEach(id=>$(id).addEventListener('input',renderLabel));
+['lbVol','lbUnit'].forEach(id=>$(id).addEventListener('input',()=>{$('lbForceSmall').checked=false;}));
 function labelSpec(){
   const vol=parseFloat($('lbVol').value)||0; const L=$('lbUnit').value==='L'?vol:vol/1000; const ratio=parseFloat($('lbRatio').value);
   let area=null, rule='';
@@ -674,29 +675,60 @@ function labelSpec(){
   else { const H=parseFloat($('lbH').value)||0,D=parseFloat($('lbD').value)||0; const surf=$('lbShape').value==='cyl'?Math.PI*D*H:4*D*H; area=surf?Math.max(surf*0.05/100,4):null; rule=surf?`5L 미만 → 상·하면 제외 표면적(${(surf/100).toFixed(0)}㎠)의 5% 이상 = ${area.toFixed(1)}㎠`:'5L 미만 → 용기 높이·지름을 입력하면 표면적의 5%로 계산합니다';
     if(!surf&&L>0){area=L>=1?30:L>=0.5?20:12;rule+=` (미입력 시 임시 ${area}㎠)`;} }
   $('lbSmallWrap').classList.toggle('hidden',L>=5);
-  const small=$('lbForceSmall').checked||(L>0&&L<=0.1);
-  if(L>0&&L<=0.1&&!$('lbForceSmall').checked){$('lbForceSmall').checked=true;}
+  const autoSmall=L>0&&L<=0.1;                       // 100ml(100g) 이하 → 간이표시 허용
+  const fs=$('lbForceSmall'); fs.disabled=!autoSmall; if(autoSmall) fs.checked=true; fs.parentElement.style.opacity=autoSmall?'1':'.5';
+  const small=autoSmall&&fs.checked;
   let w=0,h=0; if(area){w=Math.sqrt(area*100*ratio);h=w/ratio;}
-  return {L,area,rule,w,h,small};
+  let picMin=Math.max(Math.sqrt(area*100/40),7.1);  // 그림문자: 표지 면적의 1/40 이상, 최소 0.5㎠
+  // 내용이 물리적으로 들어가는 최소 크기 보장 (그림문자 7mm 이상·한 줄 배치)
+  let enlarged=false; if(area){const p=S.products.find(x=>x.id===$('lbProduct').value); const n=(p?.pictograms||[]).length||1; const sig=p?.signal_word&&p.signal_word!=='해당없음';
+    const wMin=n*(picMin+0.8)+(sig?12:0)+4, hMin=(small?4:6)+picMin+2+(small?6:9)+(small?0:8);
+    const k=Math.max(wMin/w,hMin/h,1); if(k>1.001){w*=k;h*=k;enlarged=true;area=w*h/100;} }
+  return {L,area,rule,w,h,small,picMin,enlarged};
 }
-function labelHtml(p,w,h,small){
-  const fs=k=>(h*k).toFixed(2)+'mm';
-  const pics=(p.pictograms||[]).map(c=>pictSvg(c,'')).join('');
-  const npic=Math.max((p.pictograms||[]).length,1); const picH=h*(small?0.42:0.34); const picW=Math.min(picH,(w*0.62)/npic);
-  const stmts=small?'':`<div class="st" style="font-size:${fs(0.055)}"><b>[유해·위험 문구]</b>${(p.hazard_statements||[]).slice(0,6).map(s=>esc(s.replace(/\s*\(H\d{3}\)$/,''))).join(' · ')}<b>[예방조치 문구]</b>${(p.precautionary||[]).slice(0,6).map(s=>esc(s.replace(/\s*\(P[\d\+P]+\)$/,''))).join(' ')}</div>`;
+// 글자 폭 추정(mm): 한글/한자 1em, 그 외 0.55em
+const tw=(s,f)=>[...s].reduce((a,c)=>a+(/[ᄀ-ᇿ㄰-㆏가-힯一-鿿　-〿＀-￯]/.test(c)?1:0.55),0)*f;
+function wrapLines(text,f,maxW){const out=[];for(const para of text.split('\n')){let line='';for(const word of para.split(' ')){const t=line?line+' '+word:word;if(tw(t,f)<=maxW||!line)line=t;else{out.push(line);line=word;}}out.push(line);}return out;}
+function fitFont(text,maxW,maxH,fMax,fMin,lh=1.25){for(let f=fMax;f>=fMin;f-=0.1){const n=wrapLines(text,f,maxW).length;if(n*f*lh<=maxH)return {f,n};}return {f:fMin,n:wrapLines(text,fMin,maxW).length,over:true};}
+function labelHtml(p,sp){
+  const {w,h,small,picMin}=sp; const pad=w*0.03; const innerW=w-pad*2-1.4; // 테두리 2px 감안
+  const pics=p.pictograms||[]; const n=pics.length; const sig=p.signal_word&&p.signal_word!=='해당없음'?p.signal_word:'';
+  // 1) 제품명
+  const nameF=fitFont(p.name,innerW,h*0.18,h*0.12,2.2); const nameH=nameF.n*nameF.f*1.25+h*0.02;
+  // 2) 공급자
+  const supTxt='공급자 정보 : '+(p.manufacturer||'')+(p.supplier_phone?' ☎ '+p.supplier_phone:'')+(small?'\n기타 자세한 사항은 물질안전보건자료(MSDS)를 참조하십시오.':'');
+  const supF=fitFont(supTxt,innerW,h*0.22,h*0.055,1.6); const supH=supF.n*supF.f*1.25+h*0.02;
+  // 3) 그림문자 + 신호어 — 남은 높이 안에서 한 줄 또는 두 줄
+  const sigW=sig?Math.max(h*0.14,w*0.16)*1.3:0; const picsW=innerW-sigW-(sig?pad:0);
+  const avail=h-nameH-supH;
+  const gap=pad*0.5; let rows=1,pic=0; if(n){rows=1;pic=Math.min((picsW-gap*(n-1))/n,small?avail*0.8:avail*0.42);if(n>=4&&pic<picMin*1.1){rows=2;const per=Math.ceil(n/2);pic=Math.min((picsW-gap*(per-1))/per,avail*0.3);}pic=Math.max(pic,picMin*0.85);}
+  const midH=n?rows*pic+gap*(rows-1)+pad*2:(sig?h*0.2:0);
+  const sigF=Math.min(h*0.14,sigW*0.7/ (sig.length||1)*1.0);
+  // 4) 문구(일반용기만) — 남는 높이에 맞춰 글자 크기 자동
+  let stHtml=''; if(!small){
+    const hz=(p.hazard_statements||[]).map(s=>s.replace(/\s*\(H\d{3}\)$/,'')); const pr=(p.precautionary||[]).map(s=>s.replace(/\s*\(P[\d\+P]+\)$/,''));
+    const stH=Math.max(avail-midH-pad,h*0.12); let text='',r=null; const mk=(a,b)=>'[유해·위험 문구] '+(a.join(' / ')||'-')+'\n[예방조치 문구] '+(b.join(' ')||'-');
+    let H=hz.slice(),P=pr.slice(); for(let i=0;i<40;i++){text=mk(H,P);r=fitFont(text,innerW,stH,h*0.05,1.4,1.3);if(!r.over)break;if(P.length>1)P.pop();else if(H.length>1)H.pop();else break;}
+    if(H.length<hz.length||P.length<pr.length){text=text.replace(/$/,' …');}
+    stHtml=`<div class="st" style="font-size:${r.f.toFixed(2)}mm;line-height:1.3;height:${stH.toFixed(1)}mm;padding:0 ${pad}mm;overflow:hidden;white-space:pre-wrap">${esc(text)}</div>`;
+  }
+  const picHtml=pics.map(c=>pictSvg(c,'lp').replace('<svg ',`<svg style="width:${pic.toFixed(1)}mm;height:${pic.toFixed(1)}mm;flex:0 0 auto" `)).join('');
   return `<div class="lbl" style="width:${w.toFixed(1)}mm;height:${h.toFixed(1)}mm">
-    <div class="nm" style="font-size:${fs(small?0.13:0.1)}">${esc(p.name)}</div>
-    <div class="mid" style="height:${picH.toFixed(1)}mm"><div class="pics">${pics.replace(/<svg /g,`<svg style="width:${picW.toFixed(1)}mm;height:${picW.toFixed(1)}mm" `)}</div><div class="sig" style="font-size:${fs(small?0.16:0.13)}">${esc(p.signal_word&&p.signal_word!=='해당없음'?p.signal_word:'')}</div></div>
-    ${stmts}
-    <div class="sup" style="font-size:${fs(small?0.07:0.055)}">공급자 정보 : ${esc(p.manufacturer||'')}${p.supplier_phone?' ☎ '+esc(p.supplier_phone):''}${small?'<br>기타 자세한 사항은 물질안전보건자료(MSDS)를 참조하십시오.':''}</div>
+    <div class="nm" style="font-size:${nameF.f.toFixed(2)}mm;line-height:1.25;height:${nameH.toFixed(1)}mm;padding:${(h*0.01).toFixed(1)}mm ${pad}mm;display:flex;align-items:center;justify-content:center">${esc(p.name)}</div>
+    <div class="mid" style="height:${midH.toFixed(1)}mm;padding:${pad}mm;gap:${pad}mm;align-items:center;overflow:hidden;box-sizing:border-box">
+      <div class="pics" style="display:flex;flex-wrap:wrap;gap:${gap.toFixed(2)}mm;width:${picsW.toFixed(1)}mm;flex:0 0 auto;align-content:center;height:100%">${picHtml}</div>
+      ${sig?`<div class="sig" style="font-size:${sigF.toFixed(2)}mm;width:${sigW.toFixed(1)}mm;flex:0 0 auto;text-align:center;padding:0;line-height:1">${esc(sig)}</div>`:''}
+    </div>
+    ${stHtml}
+    <div class="sup" style="font-size:${supF.f.toFixed(2)}mm;line-height:1.25;height:${supH.toFixed(1)}mm;padding:${(h*0.01).toFixed(1)}mm ${pad}mm;margin-top:auto;white-space:pre-wrap;overflow:hidden">${esc(supTxt)}</div>
   </div>`;
 }
 function renderLabel(){
   const p=S.products.find(x=>x.id===$('lbProduct').value); const sp=labelSpec();
-  $('lbInfo').innerHTML=sp.area?`<b>${sp.rule}</b> → 표지 크기 <b>${sp.w.toFixed(0)} × ${sp.h.toFixed(0)} mm</b> (${(sp.w*sp.h/100).toFixed(0)}㎠)${sp.small?' · <b>소량용기 간이표시</b>(제품명·그림문자·신호어·공급자정보)':' · 일반 표지(6개 항목)'}<br><span class="mut">근거: 화학물질의 분류·표시 및 MSDS에 관한 기준 별표3 (용기 100ml 이하는 간이표시 가능)</span>`:'제품과 용량을 입력하면 표지 크기가 자동 계산됩니다.';
+  $('lbInfo').innerHTML=sp.area?`<b>${sp.rule}</b> → 표지 크기 <b>${sp.w.toFixed(0)} × ${sp.h.toFixed(0)} mm</b> (${(sp.w*sp.h/100).toFixed(0)}㎠)${sp.enlarged?' <span class="tag yel">법정 최소 면적보다 키움 — 그림문자 최소 크기(7mm) 확보</span>':''}<br>${sp.small?'<b>소량용기(100ml 이하) 간이표시</b> — 제품명·그림문자·신호어·공급자정보 4개 항목':'<b>일반 용기 경고표지</b> — 제품명·그림문자·신호어·유해위험문구·예방조치문구·공급자정보 6개 항목'} · 그림문자 한 변 ${sp.picMin.toFixed(0)}mm 이상<br><span class="mut">근거: 화학물질의 분류·표시 및 MSDS에 관한 기준 별표3(규격), §6②(100ml 이하 용기 간이표시), 그림문자는 표지 면적의 1/40 이상·0.5㎠ 이상</span>`:'제품과 용량을 입력하면 표지 크기가 자동 계산됩니다.';
   if(!p||!sp.area){$('lbPreview').innerHTML='';return;}
   const n=Math.min(Math.max(parseInt($('lbCopies').value)||1,1),40);
-  $('lbPreview').innerHTML=Array.from({length:n},()=>labelHtml(p,sp.w,sp.h,sp.small)).join('');
+  $('lbPreview').innerHTML=Array.from({length:n},()=>labelHtml(p,sp)).join('');
 }
 $('lbPrint').onclick=async()=>{const p=S.products.find(x=>x.id===$('lbProduct').value);if(!p)return toast('제품을 선택하세요.');const sp=labelSpec();
   sb.from('msds_labels').insert({product_id:p.id,site_id:S.profile.site_id||null,volume_ml:sp.L*1000,label_w_mm:sp.w,label_h_mm:sp.h,kind:sp.small?'small':'normal',created_by:S.user.id}).then(()=>{});
