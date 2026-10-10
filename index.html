@@ -71,7 +71,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
 .guide .ft{padding:6px 10px;font-size:12px;border-top:1px solid #000}
 
 /* ===== 경고표지 ===== */
-.lbl{background:#fff;color:#000;border:2px solid #000;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}
+.lbl{background:#fff;color:#000;border:2px solid #000;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;break-inside:avoid;page-break-inside:avoid;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}
 .lbl .nm{font-weight:900;text-align:center;border-bottom:1.5px solid #000;overflow:hidden;word-break:keep-all}
 .lbl .mid{display:flex;align-items:center;flex:0 0 auto}
 .lbl .pics{display:flex;gap:2%;flex:1;flex-wrap:wrap}.lbl .pics svg{aspect-ratio:1}
@@ -81,10 +81,10 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
 
 @media print{
   body{background:#fff}header,nav,.noprint,.toast{display:none!important}main{max-width:none;padding:0}
-  .page{display:none!important}.page.printing{display:block!important}
+  .page{display:none!important}.page.printing{display:block!important}.page.printing>h1{display:none}
   .card{border:0;box-shadow:none;padding:0;margin:0}
   .printarea{transform-origin:top left}
-  @page{margin:10mm}
+  @page{margin:8mm}
 }
 </style>
 </head>
@@ -686,15 +686,18 @@ function labelSpec(){
     const k=Math.max(wMin/w,hMin/h,1); if(k>1.001){w*=k;h*=k;enlarged=true;area=w*h/100;} }
   return {L,area,rule,w,h,small,picMin,enlarged};
 }
-// 글자 폭 추정(mm): 한글/한자 1em, 그 외 0.55em
-const tw=(s,f)=>[...s].reduce((a,c)=>a+(/[ᄀ-ᇿ㄰-㆏가-힯一-鿿　-〿＀-￯]/.test(c)?1:0.55),0)*f;
-function wrapLines(text,f,maxW){const out=[];for(const para of text.split('\n')){let line='';for(const word of para.split(' ')){const t=line?line+' '+word:word;if(tw(t,f)<=maxW||!line)line=t;else{out.push(line);line=word;}}out.push(line);}return out;}
-function fitFont(text,maxW,maxH,fMax,fMin,lh=1.25){for(let f=fMax;f>=fMin;f-=0.1){const n=wrapLines(text,f,maxW).length;if(n*f*lh<=maxH)return {f,n};}return {f:fMin,n:wrapLines(text,fMin,maxW).length,over:true};}
+// 글자 폭 실측(mm): 캔버스 measureText 로 실제 폰트 기준 측정 (+8% 여유)
+const _mc=document.createElement('canvas').getContext('2d');
+function tw(s,f,bold){_mc.font=`${bold?'900':'400'} ${(f*3.7795).toFixed(2)}px "Malgun Gothic","Apple SD Gothic Neo",sans-serif`;return _mc.measureText(s).width/3.7795*1.08;}
+function wrapLines(text,f,maxW,bold){const out=[];for(const para of text.split('\n')){let line='';for(const word of para.split(' ')){const t=line?line+' '+word:word;if(tw(t,f,bold)<=maxW||!line)line=t;else{out.push(line);line=word;}}
+  // 공백 없는 긴 단어는 글자 단위로 자름
+  out.push(line);}return out.flatMap(l=>{if(tw(l,f,bold)<=maxW)return [l];const r=[];let cur='';for(const ch of l){if(tw(cur+ch,f,bold)>maxW&&cur){r.push(cur);cur=ch;}else cur+=ch;}if(cur)r.push(cur);return r;});}
+function fitFont(text,maxW,maxH,fMax,fMin,lh=1.25,bold=false){for(let f=fMax;f>=fMin;f-=0.1){const n=wrapLines(text,f,maxW,bold).length;if(n*f*lh<=maxH)return {f,n};}return {f:fMin,n:wrapLines(text,fMin,maxW,bold).length,over:true};}
 function labelHtml(p,sp){
   const {w,h,small,picMin}=sp; const pad=w*0.03; const innerW=w-pad*2-1.4; // 테두리 2px 감안
   const pics=p.pictograms||[]; const n=pics.length; const sig=p.signal_word&&p.signal_word!=='해당없음'?p.signal_word:'';
   // 1) 제품명
-  const nameF=fitFont(p.name,innerW,h*0.18,h*0.12,2.2); const nameH=nameF.n*nameF.f*1.25+h*0.02;
+  const nameF=fitFont(p.name,innerW,h*0.2,h*0.12,2.2,1.25,true); const nameH=nameF.n*nameF.f*1.25+h*0.02;
   // 2) 공급자
   const supTxt='공급자 정보 : '+(p.manufacturer||'')+(p.supplier_phone?' ☎ '+p.supplier_phone:'')+(small?'\n기타 자세한 사항은 물질안전보건자료(MSDS)를 참조하십시오.':'');
   const supF=fitFont(supTxt,innerW,h*0.22,h*0.055,1.6); const supH=supF.n*supF.f*1.25+h*0.02;
