@@ -190,7 +190,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
     <div class="row"><select id="exSite" class="auto" style="min-width:180px"><option value="">전체 사업장</option></select>
       <select id="exFilter" class="auto" style="min-width:160px"><option value="">전체</option><option value="pre">배치전 미실시</option><option value="due">배치후 D-7 이내</option><option value="over">배치후 기한 경과</option><option value="done">완료</option></select>
       <span class="mut auto" id="exCount"></span></div>
-    <div class="tw" style="margin-top:10px"><table><thead><tr><th>사업장</th><th>근로자</th><th>유해인자 / 제품</th><th>배치일</th><th>배치전 검진</th><th>배치후 검진 예정</th><th>D-day</th><th>배치후 검진</th><th></th></tr></thead><tbody id="exBody"></tbody></table></div>
+    <div class="tw" style="margin-top:10px"><table><thead><tr><th>사업장</th><th>근로자</th><th>유해인자</th><th>배치일</th><th>배치전 검진</th><th>배치후 검진 예정</th><th>D-day</th><th>배치후 검진</th><th></th></tr></thead><tbody id="exBody"></tbody></table></div>
   </div>
   <div class="card"><h2>근로자 명단</h2><div class="tw"><table><thead><tr><th>사업장</th><th>이름</th><th>사번</th><th>직무</th><th>배치 건수</th><th></th></tr></thead><tbody id="wkBody"></tbody></table></div></div>
 </div>
@@ -201,7 +201,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
   <div class="grid g2">
     <div class="card"><h2>사업장</h2>
       <div class="row"><input id="stSiteName" placeholder="사업장명"><input id="stSiteCode" placeholder="코드(선택)" class="auto" style="width:110px"><button class="btn pri auto" id="stSiteAdd">추가</button></div>
-      <div class="tw" style="margin-top:10px"><table><thead><tr><th>사업장</th><th>코드</th><th>제품</th><th></th></tr></thead><tbody id="stSites"></tbody></table></div></div>
+      <div class="tw" style="margin-top:10px"><table><thead><tr><th>사업장</th><th>코드</th><th>담당자</th><th>휴대폰(문자 수신)</th><th>제품</th><th></th></tr></thead><tbody id="stSites"></tbody></table></div></div>
     <div class="card"><h2>계정</h2>
       <div class="grid g3" style="margin-bottom:8px">
         <div><label class="f">이름</label><input id="nuName"></div>
@@ -213,6 +213,12 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
       </div>
       <p class="mut">관리자가 계정을 만들어 담당자에게 이메일·임시 비밀번호를 알려주는 방식입니다. 아래 표에서 역할·사업장 변경과 비밀번호 재설정이 가능합니다.</p>
       <div class="tw"><table><thead><tr><th>이름</th><th>이메일</th><th>역할</th><th>사업장</th><th></th></tr></thead><tbody id="stUsers"></tbody></table></div></div>
+  </div>
+  <div class="card"><h2>특수건강검진 문자 알림</h2>
+    <p class="mut">매일 아침 8시, 배치후 검진 예정일이 <b id="smsDays">7</b>일 이내로 다가온 미실시 근로자를 사업장별로 묶어 위 표의 담당자 휴대폰으로 문자를 보냅니다(같은 배치는 한 번만). 발신번호·잔액은 빌딩정보 앱의 솔라피 설정을 함께 씁니다.</p>
+    <div class="row"><span id="smsStatus" class="mut auto">상태 확인 중…</span><div class="auto" style="margin-left:auto"><button class="btn sm" id="smsPreview">미리보기</button> <button class="btn sm" id="smsRun">지금 보내기</button></div></div>
+    <div id="smsOut" style="margin-top:8px"></div>
+    <div class="tw" style="margin-top:8px"><table><thead><tr><th>일시</th><th>구분</th><th>사업장</th><th>수신</th><th>결과</th><th>비고</th></tr></thead><tbody id="smsLog"></tbody></table></div>
   </div>
   <div class="card"><h2>AI 보완 추출</h2><p class="mut" id="aiStatus"></p></div>
 </div>
@@ -273,7 +279,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
   <div class="row"><h2 class="auto" style="margin:0">배치 등록 / 검진 관리</h2><button class="btn ghost auto" style="margin-left:auto" onclick="closeM('mAssign')">✕</button></div>
   <div style="display:grid;gap:10px">
     <div><label class="f">근로자 *</label><select id="a_worker"></select></div>
-    <div class="row"><div><label class="f">취급 제품</label><select id="a_product"><option value="">선택</option></select></div><div><label class="f">유해인자</label><input id="a_agent" placeholder="예: 톨루엔"></div></div>
+    <div><label class="f">유해인자 구분 *</label><select id="a_agent"><option value="야간근무">야간근무</option><option value="MSDS">MSDS (화학물질 취급)</option></select></div>
     <div class="row"><div><label class="f">배치일 *</label><input id="a_date" type="date"></div><div><label class="f">배치후 첫 검진 시기(개월)</label><select id="a_months"><option value="1">1개월</option><option value="2">2개월</option><option value="3">3개월</option><option value="6" selected>6개월</option><option value="12">12개월</option></select></div></div>
     <div class="card" style="margin:0;padding:12px"><label class="chk"><input type="checkbox" id="a_pre"> 배치전 검진 실시</label> <input id="a_preDate" type="date" style="width:170px;display:inline"></div>
     <div class="card" style="margin:0;padding:12px"><label class="chk"><input type="checkbox" id="a_post"> 배치후 검진 실시</label> <input id="a_postDate" type="date" style="width:170px;display:inline"><div class="hint" id="a_dueHint"></div></div>
@@ -782,7 +788,7 @@ function renderExam(){
     if(f==='pre')return !e.pre_exam_done; if(f==='due')return !e.post_exam_done&&d<=7&&d>=0; if(f==='over')return !e.post_exam_done&&d<0; if(f==='done')return e.pre_exam_done&&e.post_exam_done; return true;});
   $('exCount').textContent=`${rows.length}건`;
   $('exBody').innerHTML=rows.map(({e,w})=>{const d=dday(e.post_exam_due);const p=S.products.find(x=>x.id===e.product_id);
-    return `<tr><td>${esc(siteName(w.site_id))}</td><td><b>${esc(w.name)}</b></td><td>${esc(e.agent||'')}${p?`<div class="mut">${esc(p.name)}</div>`:''}</td><td>${fmt(e.placement_date)}</td><td>${e.pre_exam_done?`<span class="tag grn">실시</span> ${fmt(e.pre_exam_date)}`:'<span class="tag red">미실시</span>'}</td><td>${fmt(e.post_exam_due)}</td><td>${e.post_exam_done?'':`<span class="dday ${d<0?'over':d<=7?'soon':''}">${d<0?'D+'+(-d):'D-'+d}</span>`}</td><td>${e.post_exam_done?`<span class="tag grn">실시</span> ${fmt(e.post_exam_date)}`:'<span class="tag yel">예정</span>'}</td><td><button class="btn sm" onclick="openAssign('${e.id}')">관리</button></td></tr>`;}).join('')||'<tr><td colspan="9" class="mut">배치 등록이 없습니다.</td></tr>';
+    return `<tr><td>${esc(siteName(w.site_id))}</td><td><b>${esc(w.name)}</b></td><td>${e.agent==='야간근무'?'<span class="tag blu">야간근무</span>':e.agent==='MSDS'?'<span class="tag yel">MSDS</span>':esc(e.agent||'')}</td><td>${fmt(e.placement_date)}</td><td>${e.pre_exam_done?`<span class="tag grn">실시</span> ${fmt(e.pre_exam_date)}`:'<span class="tag red">미실시</span>'}</td><td>${fmt(e.post_exam_due)}</td><td>${e.post_exam_done?'':`<span class="dday ${d<0?'over':d<=7?'soon':''}">${d<0?'D+'+(-d):'D-'+d}</span>`}</td><td>${e.post_exam_done?`<span class="tag grn">실시</span> ${fmt(e.post_exam_date)}`:'<span class="tag yel">예정</span>'}</td><td><button class="btn sm" onclick="openAssign('${e.id}')">관리</button></td></tr>`;}).join('')||'<tr><td colspan="9" class="mut">배치 등록이 없습니다.</td></tr>';
   const ws=S.workers.filter(w=>!site||w.site_id===site);
   $('wkBody').innerHTML=ws.map(w=>`<tr><td>${esc(siteName(w.site_id))}</td><td><b>${esc(w.name)}</b></td><td>${esc(w.emp_no||'')}</td><td>${esc(w.job||'')}</td><td>${S.exams.filter(e=>e.worker_id===w.id).length}</td><td><button class="btn sm" onclick="openWorker('${w.id}')">수정</button></td></tr>`).join('')||'<tr><td colspan="6" class="mut">근로자를 등록하세요.</td></tr>';
 }
@@ -797,23 +803,23 @@ $('btnAssign').onclick=()=>openAssign(null);
 function openAssign(id){AS=id?S.exams.find(e=>e.id===id):null;
   const ws=S.workers.filter(w=>isAdmin()||!S.profile.site_id||w.site_id===S.profile.site_id);
   $('a_worker').innerHTML='<option value="">선택</option>'+ws.map(w=>`<option value="${w.id}">${esc(siteName(w.site_id))} · ${esc(w.name)}</option>`).join('');
-  $('a_product').innerHTML='<option value="">선택</option>'+S.products.filter(p=>p.special_exam).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
-  $('a_worker').value=AS?.worker_id||'';$('a_product').value=AS?.product_id||'';$('a_agent').value=AS?.agent||'';$('a_date').value=fmt(AS?.placement_date)||todayStr();$('a_months').value=AS?.post_months||6;
+  $('a_worker').value=AS?.worker_id||'';$('a_agent').value=AS?.agent==='MSDS'||AS?.agent==='야간근무'?AS.agent:(AS?.agent?'MSDS':'야간근무');$('a_date').value=fmt(AS?.placement_date)||todayStr();$('a_months').value=AS?.post_months||6;
   $('a_pre').checked=!!AS?.pre_exam_done;$('a_preDate').value=fmt(AS?.pre_exam_date);$('a_post').checked=!!AS?.post_exam_done;$('a_postDate').value=fmt(AS?.post_exam_date);$('a_note').value=AS?.note||'';
   $('a_del').classList.toggle('hidden',!AS);dueHint();openM('mAssign');}
 function dueHint(){const d=$('a_date').value,m=+$('a_months').value;if(!d)return $('a_dueHint').textContent='';const dt=new Date(d);dt.setMonth(dt.getMonth()+m);$('a_dueHint').textContent=`배치후 첫 검진 예정일: ${dt.toLocaleDateString('sv-SE')} (별표23의 유해인자별 시기에 맞춰 개월 수를 선택하세요)`;}
 ['a_date','a_months'].forEach(id=>$(id).addEventListener('input',dueHint));
-$('a_product').addEventListener('change',()=>{const p=S.products.find(x=>x.id===$('a_product').value);if(p&&!$('a_agent').value)$('a_agent').value=(p.special_exam_agents||[]).join(', ');});
 $('a_pre').addEventListener('change',()=>{if($('a_pre').checked&&!$('a_preDate').value)$('a_preDate').value=todayStr();});
 $('a_post').addEventListener('change',()=>{if($('a_post').checked&&!$('a_postDate').value)$('a_postDate').value=todayStr();});
-$('a_save').onclick=async()=>{const rec={worker_id:$('a_worker').value,product_id:$('a_product').value||null,agent:$('a_agent').value.trim()||null,placement_date:$('a_date').value,post_months:+$('a_months').value,pre_exam_done:$('a_pre').checked,pre_exam_date:$('a_preDate').value||null,post_exam_done:$('a_post').checked,post_exam_date:$('a_postDate').value||null,note:$('a_note').value.trim()||null};
+$('a_save').onclick=async()=>{const rec={worker_id:$('a_worker').value,product_id:null,agent:$('a_agent').value,placement_date:$('a_date').value,post_months:+$('a_months').value,pre_exam_done:$('a_pre').checked,pre_exam_date:$('a_preDate').value||null,post_exam_done:$('a_post').checked,post_exam_date:$('a_postDate').value||null,note:$('a_note').value.trim()||null};
   if(!rec.worker_id||!rec.placement_date)return toast('근로자와 배치일을 입력하세요.');
   const r=AS?await sb.from('msds_exam_assignments').update(rec).eq('id',AS.id):await sb.from('msds_exam_assignments').insert(rec);if(r.error)return toast(r.error.message);closeM('mAssign');await loadAll();go(S.page);};
 $('a_del').onclick=async()=>{if(!confirm('삭제할까요?'))return;const r=await sb.from('msds_exam_assignments').delete().eq('id',AS.id);if(r.error)return toast(r.error.message);closeM('mAssign');await loadAll();go(S.page);};
 
 /* ===================== 설정 ===================== */
 function renderSet(){
-  $('stSites').innerHTML=S.sites.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.code||'')}</td><td>${S.sp.filter(x=>x.site_id===s.id).length}</td><td class="right"><button class="btn sm" onclick="delSite('${s.id}')">삭제</button></td></tr>`).join('')||'<tr><td colspan="4" class="mut">사업장이 없습니다.</td></tr>';
+  $('stSites').innerHTML=S.sites.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.code||'')}</td><td><input value="${esc(s.manager_name||'')}" data-s="${s.id}" data-k="manager_name" placeholder="이름" style="padding:5px;width:90px"></td><td><input value="${esc(s.manager_phone||'')}" data-s="${s.id}" data-k="manager_phone" placeholder="010-0000-0000" style="padding:5px;width:140px"> <button class="btn sm" onclick="smsTest('${s.id}')">시험문자</button></td><td>${S.sp.filter(x=>x.site_id===s.id).length}</td><td class="right"><button class="btn sm" onclick="delSite('${s.id}')">삭제</button></td></tr>`).join('')||'<tr><td colspan="6" class="mut">사업장이 없습니다.</td></tr>';
+  $('stSites').querySelectorAll('input[data-s]').forEach(inp=>inp.onchange=async()=>{const r=await sb.from('msds_sites').update({[inp.dataset.k]:inp.value.trim()||null}).eq('id',inp.dataset.s);if(r.error)return toast(r.error.message);toast('저장');const st=S.sites.find(x=>x.id===inp.dataset.s);if(st)st[inp.dataset.k]=inp.value.trim()||null;});
+  smsStatus();
   const roleOpt=r=>['pending:승인대기','site:사업장 담당','admin:관리자','disabled:비활성'].map(x=>{const [v,l]=x.split(':');return `<option value="${v}" ${v===r?'selected':''}>${l}</option>`;}).join('');
   $('nuSite').innerHTML='<option value="">-</option>'+S.sites.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
   $('stUsers').innerHTML=S.users.map(u=>`<tr><td>${esc(u.name)}</td><td class="mut">${esc(u.email||'')}</td><td><select data-u="${u.id}" data-k="role" style="padding:5px">${roleOpt(u.role)}</select></td><td><select data-u="${u.id}" data-k="site_id" style="padding:5px"><option value="">-</option>${S.sites.map(s=>`<option value="${s.id}" ${s.id===u.site_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></td><td>${u.role==='pending'?'<span class="tag yel">대기</span> ':''}<button class="btn sm" onclick="resetPw('${u.id}','${esc(u.name)}')">비밀번호</button></td></tr>`).join('');
@@ -826,6 +832,14 @@ $('nuAdd').onclick=async()=>{const b={action:'create',name:$('nuName').value.tri
   if(error||data?.error){let m=data?.error||error.message;try{const j=await error.context.json();if(j?.error)m=j.error;}catch(_){}return toast('실패: '+m);}toast('계정을 만들었습니다.');['nuName','nuEmail','nuPw'].forEach(i=>$(i).value='');await loadAll();renderSet();};
 async function resetPw(id,name){const pw=prompt(`${name} 님의 새 비밀번호 (6자 이상)`);if(!pw)return;if(pw.length<6)return toast('6자 이상이어야 합니다.');
   const {data,error}=await sb.functions.invoke('msds-admin',{body:{action:'reset_password',user_id:id,password:pw}});if(error||data?.error){let m=data?.error||error.message;try{const j=await error.context.json();if(j?.error)m=j.error;}catch(_){}return toast('실패: '+m);}toast('비밀번호를 변경했습니다.');}
+async function fnCall(name,body){const {data,error}=await sb.functions.invoke(name,{body});if(error){let m=error.message;try{const j=await error.context.json();if(j?.error)m=j.error;}catch(_){}throw new Error(m);}if(data?.error)throw new Error(data.error);return data;}
+async function smsStatus(){try{const d=await fnCall('msds-notify',{action:'status'});$('smsDays').textContent=d.days;
+  $('smsStatus').innerHTML=d.ready?`솔라피 ${d.enabled?'<span class="tag grn">켜짐</span>':'<span class="tag red">꺼짐</span>'} 발신 ${esc(d.sender)} · 잔액 ${d.balance==null?'-':d.balance.toLocaleString()+'원'}${d.err?' <span class="tag red">'+esc(d.err)+'</span>':''}`:'<span class="tag red">솔라피 키 미설정</span> 빌딩정보 앱 설정에서 솔라피 키를 넣어야 합니다.';
+  $('smsLog').innerHTML=(d.logs||[]).map(l=>`<tr><td>${new Date(l.at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td>${({auto:'자동',manual:'수동',test:'시험'})[l.mode]||esc(l.mode||'')}</td><td>${esc(l.msds_sites?.name||'')}</td><td>${esc(l.phone||'')}</td><td>${l.ok?'<span class="tag grn">성공 '+l.ok+'</span>':''}${l.fail?' <span class="tag red">실패 '+l.fail+'</span>':''}</td><td class="mut">${esc(l.note||'')}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">발송 이력이 없습니다.</td></tr>';
+ }catch(e){$('smsStatus').innerHTML='<span class="tag red">상태 확인 실패</span> '+esc(e.message);}}
+$('smsPreview').onclick=async()=>{$('smsOut').innerHTML='<span class="mut">확인 중…</span>';try{const d=await fnCall('msds-notify',{action:'preview'});$('smsOut').innerHTML=d.messages.length?d.messages.map(m=>`<div class="card" style="padding:10px;margin:6px 0"><b>${esc(m.site)}</b> → ${esc(m.phone)} · ${m.people}명<pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;margin:6px 0 0">${esc(m.text)}</pre></div>`).join(''):`<span class="mut">오늘부터 ${d.days}일 이내 예정인 미실시 배치가 없거나 이미 발송했습니다.</span>`;}catch(e){$('smsOut').innerHTML='<span class="tag red">'+esc(e.message)+'</span>';}};
+$('smsRun').onclick=async()=>{if(!confirm('지금 대상자에게 실제 문자를 보낼까요?'))return;try{const d=await fnCall('msds-notify',{action:'run'});toast(d.skipped||`발송 ${d.sent||0}건, 실패 ${d.fail||0}건, 연락처 없음 ${d.noPhone||0}곳`);smsStatus();}catch(e){toast('실패: '+e.message);}};
+async function smsTest(id){if(!confirm('이 사업장 담당자에게 시험 문자를 보낼까요?'))return;try{const d=await fnCall('msds-notify',{action:'test',site_id:id});toast(d.sent?'시험 문자 발송 완료':'실패: '+(d.note||''));smsStatus();}catch(e){toast('실패: '+e.message);}}
 $('stSiteAdd').onclick=async()=>{const name=$('stSiteName').value.trim();if(!name)return;const r=await sb.from('msds_sites').insert({name,code:$('stSiteCode').value.trim()||null});if(r.error)return toast(r.error.message);$('stSiteName').value='';$('stSiteCode').value='';await loadAll();renderSet();};
 async function delSite(id){if(!confirm('사업장을 삭제할까요? 보유 제품 연결·근로자 정보도 함께 삭제됩니다.'))return;const r=await sb.from('msds_sites').delete().eq('id',id);if(r.error)return toast(r.error.message);await loadAll();renderSet();}
 
