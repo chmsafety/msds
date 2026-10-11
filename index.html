@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSDS 관리</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='15' width='70' height='70' rx='8' transform='rotate(45 50 50)' fill='%23d32f2f'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white' font-weight='bold'>!</text></svg>">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f766e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MSDS">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='15' y='15' width='70' height='70' rx='8' transform='rotate(45 50 50)' fill='%23d32f2f'/><text x='50' y='64' font-size='42' text-anchor='middle' fill='white' font-weight='bold'>!</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{--bg:#f3f5f8;--card:#fff;--line:#dde3ea;--tx:#1f2937;--mut:#6b7280;--pri:#0f766e;--pri2:#0d9488;--red:#d32f2f;--yel:#f59e0b;--grn:#16a34a;--blu:#2563eb;--r:12px;--sh:0 1px 3px rgba(0,0,0,.06)}
@@ -99,7 +107,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
     <button data-p="exam">특수건강검진</button>
     <button data-p="set" id="navSet" class="hidden">설정</button>
   </nav>
-  <div class="me" id="me"></div>
+  <button class="btn sm hidden" id="installBtn" title="홈 화면에 앱으로 설치">📲 앱 설치</button><div class="me" id="me"></div>
 </div></header>
 
 <main>
@@ -843,6 +851,10 @@ async function smsTest(id){if(!confirm('이 사업장 담당자에게 시험 문
 $('stSiteAdd').onclick=async()=>{const name=$('stSiteName').value.trim();if(!name)return;const r=await sb.from('msds_sites').insert({name,code:$('stSiteCode').value.trim()||null});if(r.error)return toast(r.error.message);$('stSiteName').value='';$('stSiteCode').value='';await loadAll();renderSet();};
 async function delSite(id){if(!confirm('사업장을 삭제할까요? 보유 제품 연결·근로자 정보도 함께 삭제됩니다.'))return;const r=await sb.from('msds_sites').delete().eq('id',id);if(r.error)return toast(r.error.message);await loadAll();renderSet();}
 
+/* ===================== PWA ===================== */
+if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+let deferredInstall=null; window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const b=document.getElementById('installBtn');if(b)b.classList.remove('hidden');});
+document.getElementById('installBtn')?.addEventListener('click',async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;document.getElementById('installBtn').classList.add('hidden');});
 /* ===================== 시작 ===================== */
 (async()=>{const {data:{session}}=await sb.auth.getSession(); if(session?.user){S.user=session.user;boot();} else showLogin();})();
 </script>
