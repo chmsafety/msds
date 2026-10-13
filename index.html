@@ -55,6 +55,8 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
 .pictbig{width:100%;height:100%}
 .chk{display:inline-flex;align-items:center;gap:6px;font-size:14px;margin:4px 10px 4px 0;cursor:pointer}.chk input{width:auto}
 .login{max-width:400px;margin:70px auto}
+.dt{display:inline-block;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:700;margin-left:3px;vertical-align:middle}.dt.f{background:#dbeafe;color:#1e40af}.dt.m{background:#dcfce7;color:#166534}.dt.n{background:#f3f4f6;color:#6b7280}
+.siteRow{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;margin:4px 0}.siteRow .sn{min-width:160px}.siteRow.off .dd{opacity:.35;pointer-events:none}
 .alert{padding:10px 14px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:14px;margin-bottom:12px}
 .alert.red{background:#fef2f2;border-color:#fecaca;color:#991b1b}.alert.grn{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
 .progress{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden}.progress i{display:block;height:100%;background:var(--pri2);width:0;transition:.3s}
@@ -145,13 +147,14 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
   <div class="card">
     <div class="row">
       <input class="search" id="msSearch" placeholder="제품명·제조사·CAS 검색">
-      <select id="msSite" class="auto" style="min-width:180px"><option value="">전체 사업장</option></select>
-      <select id="msFilter" class="auto" style="min-width:160px">
+      <select id="msSite" class="auto" style="min-width:180px;width:auto"><option value="">전체 사업장</option></select>
+      <select id="msDept" class="auto" style="min-width:140px;width:auto"><option value="">시설+미화 전체</option><option value="시설">시설</option><option value="미화">미화</option><option value="none">구분 미지정</option></select>
+      <select id="msFilter" class="auto" style="min-width:140px;width:auto">
         <option value="">전체</option><option value="special">특검 대상</option><option value="managed">관리대상</option><option value="permit">허가대상</option><option value="unreviewed">검수 대기</option>
       </select>
-      <span class="mut auto" id="msCount"></span><span class="auto hidden" id="msSelBar"><b id="msSelN"></b>건 선택 <button class="btn sm" id="msSelAi">✨ 선택 항목 AI 추출</button> <button class="btn sm ghost" id="msSelClr">선택 해제</button></span>
+      <span class="mut auto" id="msCount"></span><button class="btn sm auto" id="msCsv" title="현재 목록을 엑셀(CSV)로 내려받기">⬇ 목록 내려받기</button><span class="auto hidden" id="msSelBar"><b id="msSelN"></b>건 선택 <button class="btn sm" id="msSelAi">✨ 선택 항목 AI 추출</button> <button class="btn sm ghost" id="msSelClr">선택 해제</button></span>
     </div>
-    <div class="tw" style="margin-top:10px"><table><thead><tr><th style="width:34px"><input type="checkbox" id="msAll" title="보이는 항목 전체 선택" style="width:auto"></th><th>제품명</th><th>제조/공급</th><th>그림문자</th><th>신호어</th><th>법적 구분</th><th>보유 사업장</th><th>상태</th></tr></thead><tbody id="msBody"></tbody></table></div>
+    <div class="tw" style="margin-top:10px"><table><thead><tr><th style="width:34px"><input type="checkbox" id="msAll" title="보이는 항목 전체 선택" style="width:auto"></th><th>제품명</th><th>제조/공급</th><th>그림문자</th><th>신호어</th><th>법적 구분</th><th>보유 사업장 · 구분</th><th>상태</th></tr></thead><tbody id="msBody"></tbody></table></div>
   </div>
 </div>
 
@@ -237,7 +240,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
   <div class="row"><h2 class="auto" style="margin:0">MSDS PDF 올리기</h2><button class="btn ghost auto" style="margin-left:auto" onclick="closeM('mUpload')">✕</button></div>
   <div id="upStep1">
     <div class="drop" id="drop">PDF 파일을 여기에 끌어다 놓거나 클릭해서 선택하세요<br><span class="mut">여러 개를 한 번에 올릴 수 있습니다</span><input type="file" id="fileIn" accept="application/pdf" multiple class="hidden"></div>
-    <div class="row" style="margin-top:10px"><div><label class="f">보유 사업장</label><select id="upSite"></select></div><div><label class="f">사용 공정(선택)</label><input id="upProcess" placeholder="예: 도장, 세척"></div></div>
+    <div class="row" style="margin-top:10px"><div><label class="f">보유 사업장</label><select id="upSite"></select></div><div><label class="f">사용 구분</label><div><label class="chk"><input type="checkbox" id="upDeptF"> 시설</label><label class="chk"><input type="checkbox" id="upDeptM"> 미화</label></div></div><div><label class="f">사용 공정(선택)</label><input id="upProcess" placeholder="예: 도장, 세척"></div></div>
     <label class="chk" style="margin-top:8px"><input type="checkbox" id="upAi" checked> 올린 뒤 AI 보완 추출까지 자동으로 진행</label>
     <div id="upList" style="margin-top:10px"></div>
   </div>
@@ -286,7 +289,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
     <div><label class="f">법적규제현황 (15항)</label><textarea id="e_legal"></textarea></div>
     <div><label class="f">보호구</label><div id="e_ppe"></div></div>
   </div>
-  <h3>보유 사업장</h3><div id="e_sites"></div>
+  <h3>보유 사업장 · 사용 구분</h3><p class="mut" style="margin:0 0 4px;font-size:13px">사업장을 체크하고 시설/미화 중 어디서 쓰는지 고르세요(둘 다 가능).</p><div id="e_sites"></div>
   <div class="row" style="margin-top:16px">
     <span class="mut auto" id="e_pdf"></span> <span class="tag blu auto hidden" id="e_qpos"></span>
     <div class="auto" style="margin-left:auto"><button class="btn" id="e_ai">✨ AI로 보완 추출</button> <button class="btn red" id="e_del">삭제</button> <button class="btn" id="e_save">저장</button> <button class="btn pri" id="e_saveOk">검수 완료 저장</button> <button class="btn pri hidden" id="e_saveNext">검수 완료 → 다음 ▶</button> <button class="btn hidden" id="e_skip">건너뛰기</button></div>
@@ -433,7 +436,11 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if
 const S = { user:null, profile:null, sites:[], products:[], sp:[], workers:[], exams:[], users:[], page:'dash' };
 const isAdmin = () => S.profile?.role === 'admin';
 const siteName = id => S.sites.find(s=>s.id===id)?.name || '';
+const DEPTS=['시설','미화'];
+const deptTags = d => (d&&d.length)?d.map(x=>`<span class="dt ${x==='시설'?'f':'m'}">${x}</span>`).join(''):'<span class="dt n">미지정</span>';
+const deptOk = (r,dept) => !dept || (dept==='none' ? !(r.depts||[]).length : (r.depts||[]).includes(dept));
 const productSites = pid => S.sp.filter(x=>x.product_id===pid).map(x=>siteName(x.site_id)).filter(Boolean);
+const productSitesHtml = (pid,site) => S.sp.filter(x=>x.product_id===pid&&(!site||x.site_id===site)).map(x=>`<span style="white-space:nowrap">${esc(siteName(x.site_id))}${deptTags(x.depts)}</span>`).join('<br>');
 
 /* ===================== 인증 ===================== */
 let signupMode=false;
@@ -509,23 +516,24 @@ function renderDash(){
   const rv=prods.filter(p=>!p.reviewed);
   $('dashReview').innerHTML=rv.length?`<table>${rv.slice(0,10).map(p=>`<tr class="click" onclick="openEdit('${p.id}')"><td>${esc(p.name)}</td><td class="mut">${esc(p.manufacturer||'')}</td><td><span class="tag yel">검수 대기</span></td></tr>`).join('')}</table>`:'<p class="mut">검수 대기 항목이 없습니다.</p>';
   const rows=S.sites.map(s=>{const ids=S.sp.filter(x=>x.site_id===s.id).map(x=>x.product_id);const ps=S.products.filter(p=>ids.includes(p.id));const ws=S.workers.filter(w=>w.site_id===s.id);const ex=S.exams.filter(e=>ws.some(w=>w.id===e.worker_id));
-    return `<tr><td>${esc(s.name)}</td><td class="right">${ps.length}</td><td class="right">${ps.filter(p=>p.special_exam).length}</td><td class="right">${ws.length}</td><td class="right">${ex.filter(e=>!e.post_exam_done&&dday(e.post_exam_due)<=7).length}</td></tr>`;});
-  $('dashSites').innerHTML=`<table><thead><tr><th>사업장</th><th class="right">MSDS</th><th class="right">특검 대상</th><th class="right">근로자</th><th class="right">검진 알림</th></tr></thead><tbody>${rows.join('')||'<tr><td colspan="5" class="mut">설정에서 사업장을 등록하세요.</td></tr>'}</tbody></table>`;
+    return `<tr><td>${esc(s.name)}</td><td class="right">${ps.length}</td><td class="right">${S.sp.filter(x=>x.site_id===s.id&&(x.depts||[]).includes('시설')).length}</td><td class="right">${S.sp.filter(x=>x.site_id===s.id&&(x.depts||[]).includes('미화')).length}</td><td class="right">${ps.filter(p=>p.special_exam).length}</td><td class="right">${ws.length}</td><td class="right">${ex.filter(e=>!e.post_exam_done&&dday(e.post_exam_due)<=7).length}</td></tr>`;});
+  $('dashSites').innerHTML=`<table><thead><tr><th>사업장</th><th class="right">MSDS</th><th class="right">시설</th><th class="right">미화</th><th class="right">특검 대상</th><th class="right">근로자</th><th class="right">검진 알림</th></tr></thead><tbody>${rows.join('')||'<tr><td colspan="7" class="mut">설정에서 사업장을 등록하세요.</td></tr>'}</tbody></table>`;
 }
 
 /* ===================== MSDS 목록 ===================== */
-['msSearch','msSite','msFilter'].forEach(id=>$(id).addEventListener('input',renderMsds));
+['msSearch','msSite','msFilter','msDept'].forEach(id=>$(id).addEventListener('input',renderMsds));
 function legalTags(p){const t=[];if(p.special_exam)t.push('<span class="tag red">특검</span>');if(p.managed_substance)t.push('<span class="tag yel">관리대상</span>');if(p.special_managed)t.push('<span class="tag yel">특별관리</span>');if(p.permit_substance)t.push('<span class="tag red">허가대상</span>');if(p.exposure_measure)t.push('<span class="tag blu">작업환경측정</span>');return t.join('')||'<span class="mut">-</span>';}
 function renderMsds(){
-  const q=$('msSearch').value.trim().toLowerCase(), site=$('msSite').value, f=$('msFilter').value;
+  const q=$('msSearch').value.trim().toLowerCase(), site=$('msSite').value, f=$('msFilter').value, dept=$('msDept').value;
   let list=S.products.filter(p=>{
     if(site&&!S.sp.some(x=>x.product_id===p.id&&x.site_id===site)) return false;
+    if(dept&&!S.sp.some(x=>x.product_id===p.id&&(!site||x.site_id===site)&&deptOk(x,dept))) return false;
     if(f==='special'&&!p.special_exam) return false; if(f==='managed'&&!p.managed_substance) return false; if(f==='permit'&&!p.permit_substance) return false; if(f==='unreviewed'&&p.reviewed) return false;
     if(q){const hay=[p.name,p.manufacturer,...(p.components||[]).map(c=>c.name+' '+c.cas)].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
     return true;});
   $('msCount').textContent=`${list.length}건`;
   S.msList=list.map(p=>p.id); S.sel=S.sel||new Set(); for(const id of [...S.sel]) if(!S.products.some(p=>p.id===id)) S.sel.delete(id);
-  $('msBody').innerHTML=list.map(p=>`<tr class="click" onclick="openEdit('${p.id}')"><td onclick="event.stopPropagation()"><input type="checkbox" class="msChk" data-id="${p.id}" ${S.sel.has(p.id)?'checked':''} style="width:auto"></td><td><b>${esc(p.name)}</b></td><td class="mut">${esc(p.manufacturer||'')}</td><td>${(p.pictograms||[]).map(c=>pictSvg(c,'pict').replace('class="pict"','class="pict" style="width:30px;height:30px"')).join('')}</td><td>${esc(p.signal_word||'')}</td><td>${legalTags(p)}</td><td class="mut">${productSites(p.id).join(', ')||'-'}</td><td>${p.reviewed?'<span class="tag grn">검수완료</span>':'<span class="tag yel">검수대기</span>'}${p.extract_method==='ai'?' <span class="tag blu">AI</span>':''}</td></tr>`).join('')||'<tr><td colspan="8" class="mut">등록된 MSDS가 없습니다. "MSDS PDF 올리기"로 시작하세요.</td></tr>';
+  $('msBody').innerHTML=list.map(p=>`<tr class="click" onclick="openEdit('${p.id}')"><td onclick="event.stopPropagation()"><input type="checkbox" class="msChk" data-id="${p.id}" ${S.sel.has(p.id)?'checked':''} style="width:auto"></td><td><b>${esc(p.name)}</b></td><td class="mut">${esc(p.manufacturer||'')}</td><td>${(p.pictograms||[]).map(c=>pictSvg(c,'pict').replace('class="pict"','class="pict" style="width:30px;height:30px"')).join('')}</td><td>${esc(p.signal_word||'')}</td><td>${legalTags(p)}</td><td class="mut" style="font-size:13px">${productSitesHtml(p.id,site)||'-'}</td><td>${p.reviewed?'<span class="tag grn">검수완료</span>':'<span class="tag yel">검수대기</span>'}${p.extract_method==='ai'?' <span class="tag blu">AI</span>':''}</td></tr>`).join('')||'<tr><td colspan="8" class="mut">등록된 MSDS가 없습니다. "MSDS PDF 올리기"로 시작하세요.</td></tr>';
   $('msBody').querySelectorAll('.msChk').forEach(c=>c.onchange=()=>{c.checked?S.sel.add(c.dataset.id):S.sel.delete(c.dataset.id);selBar();});
   selBar();
 }
@@ -533,6 +541,12 @@ function selBar(){const vis=S.msList||[];const n=S.sel?.size||0;$('msSelBar').cl
   $('msAll').checked=vis.length>0&&vis.every(id=>S.sel.has(id));$('msAll').indeterminate=!$('msAll').checked&&vis.some(id=>S.sel.has(id));}
 $('msAll').onchange=()=>{S.sel=S.sel||new Set();(S.msList||[]).forEach(id=>$('msAll').checked?S.sel.add(id):S.sel.delete(id));renderMsds();};
 $('msSelClr').onclick=()=>{S.sel.clear();renderMsds();};
+$('msCsv').onclick=()=>{const site=$('msSite').value,dept=$('msDept').value;const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const lines=[['사업장','구분','사용 공정','제품명','제조/공급','신호어','특검대상','특검 유해인자','관리대상','특별관리','허가대상','작업환경측정','검수'].map(q).join(',')];
+  for(const id of S.msList||[]){const p=S.products.find(x=>x.id===id);if(!p)continue;const rows=S.sp.filter(x=>x.product_id===id&&(!site||x.site_id===site)&&deptOk(x,dept));
+    for(const r of (rows.length?rows:[{}]))lines.push([siteName(r.site_id),(r.depts||[]).join('·')||(r.site_id?'미지정':''),r.process_name||'',p.name,p.manufacturer||'',p.signal_word||'',p.special_exam?'O':'',(p.special_exam_agents||[]).join(' / '),p.managed_substance?'O':'',p.special_managed?'O':'',p.permit_substance?'O':'',p.exposure_measure?'O':'',p.reviewed?'완료':'대기'].map(q).join(','));}
+  const nm=['MSDS목록',site?siteName(site):'전체',dept==='none'?'구분미지정':(dept||''),todayStr()].filter(Boolean).join('_');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download=nm+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);};
 $('msSelAi').onclick=()=>openBatch('sel');
 $('btnBatch').onclick=()=>openBatch();
 $('btnReview').onclick=()=>{const q=S.products.filter(p=>!p.reviewed).map(p=>p.id);if(!q.length)return toast('검수 대기 항목이 없습니다.');startReview(q);};
@@ -552,7 +566,7 @@ async function pdfText(file){
   return out.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n');
 }
 async function handleFiles(files){
-  if(!files.length) return; const siteId=$('upSite').value; const proc=$('upProcess').value.trim(); const newIds=[];
+  if(!files.length) return; const siteId=$('upSite').value; const proc=$('upProcess').value.trim(); const depts=[$('upDeptF').checked&&'시설',$('upDeptM').checked&&'미화'].filter(Boolean); const newIds=[];
   for(const f of files){
     const row=document.createElement('div');row.className='card';row.style.padding='10px 14px';row.innerHTML=`<div class="row"><b class="auto">${esc(f.name)}</b><span class="mut auto" id="st_${f.size}">텍스트 추출 중…</span></div><div class="progress" style="margin-top:6px"><i style="width:20%"></i></div>`;$('upList').appendChild(row);
     const st=row.querySelector('.mut'), bar=row.querySelector('.progress i');
@@ -564,7 +578,7 @@ async function handleFiles(files){
       const up=await sb.storage.from('msds-pdf').upload(path,f,{contentType:'application/pdf'}); if(up.error) throw up.error;
       const rec=productFromExtract(ex); rec.pdf_path=path; rec.extracted={text:text.slice(0,120000),ex}; rec.created_by=S.user.id;
       const ins=await sb.from('msds_products').insert(rec).select().single(); if(ins.error) throw ins.error;
-      if(siteId) await sb.from('msds_site_products').insert({site_id:siteId,product_id:ins.data.id,process_name:proc||null}); newIds.push(ins.data.id);
+      if(siteId) await sb.from('msds_site_products').insert({site_id:siteId,product_id:ins.data.id,process_name:proc||null,depts}); newIds.push(ins.data.id);
       bar.style.width='100%'; st.innerHTML=`<span class="tag grn">등록</span> ${esc(ex.name||'(제품명 미확인)')} <button class="btn sm" onclick="openEdit('${ins.data.id}')">검수</button>`;
     }catch(e){console.error(e);st.innerHTML=`<span class="tag red">실패</span> ${esc(e.message)}`;}
   }
@@ -661,8 +675,10 @@ function openEdit(id,keepQ){
   $('e_other').value=[ED.other_hazard||'',ED.nfpa?`NFPA등급(0~4단계) - 보건:${ED.nfpa.health}, 화재:${ED.nfpa.fire}, 반응성:${ED.nfpa.reactivity}`:''].filter(Boolean).join('\n');
   $('e_handling').value=ED.handling||'';$('e_firstaid').value=ED.first_aid||'';$('e_spill').value=ED.spill||'';$('e_legal').value=ED.legal||'';
   $('e_ppe').innerHTML=PPE_LIST.map(n=>`<label class="chk"><input type="checkbox" data-ppe="${n}" ${(ED.ppe||[]).includes(n)?'checked':''}>${n}</label>`).join('');
-  const mySites=S.sp.filter(x=>x.product_id===ED.id).map(x=>x.site_id);
-  $('e_sites').innerHTML=S.sites.map(s=>`<label class="chk"><input type="checkbox" data-site="${s.id}" ${mySites.includes(s.id)?'checked':''} ${isAdmin()||s.id===S.profile.site_id?'':'disabled'}>${esc(s.name)}</label>`).join('')||'<span class="mut">설정에서 사업장을 먼저 등록하세요.</span>';
+  const mySp=S.sp.filter(x=>x.product_id===ED.id);
+  $('e_sites').innerHTML=S.sites.map(s=>{const r=mySp.find(x=>x.site_id===s.id);const can=isAdmin()||s.id===S.profile.site_id;const dis=can?'':'disabled';
+    return `<div class="siteRow ${r?'':'off'}" data-row="${s.id}"><label class="chk sn"><input type="checkbox" data-site="${s.id}" ${r?'checked':''} ${dis}><b>${esc(s.name)}</b></label><span class="dd">${DEPTS.map(d=>`<label class="chk"><input type="checkbox" data-dept="${d}" ${(r?.depts||[]).includes(d)?'checked':''} ${dis}>${d}</label>`).join('')}</span></div>`;}).join('')||'<span class="mut">설정에서 사업장을 먼저 등록하세요.</span>';
+  $('e_sites').querySelectorAll('input[data-site]').forEach(c=>c.onchange=()=>c.closest('.siteRow').classList.toggle('off',!c.checked));
   $('e_pdf').innerHTML=ED.pdf_path?`<a href="#" onclick="openPdf('${ED.pdf_path}');return false">📄 원본 PDF 보기</a>`:'';
   $('e_del').classList.toggle('hidden',!id||!isAdmin()); $('e_ai').classList.toggle('hidden',!ED.extracted?.text&&!ED.pdf_path);
   openM('mEdit'); $('mEdit').scrollTop=0;
@@ -687,8 +703,11 @@ async function saveEdit(reviewed,inQueue){
   let id=ED.id;
   if(id){const r=await sb.from('msds_products').update(p).eq('id',id);if(r.error){toast(r.error.message);return false;}}
   else{p.created_by=S.user.id;p.extract_method='manual';const r=await sb.from('msds_products').insert(p).select().single();if(r.error){toast(r.error.message);return false;}id=r.data.id;}
-  const want=[...$('e_sites').querySelectorAll('input:checked')].map(i=>i.dataset.site); const have=S.sp.filter(x=>x.product_id===id);
-  for(const sid of want) if(!have.some(h=>h.site_id===sid)) await sb.from('msds_site_products').insert({site_id:sid,product_id:id});
+  const wantD={};$('e_sites').querySelectorAll('input[data-site]:checked').forEach(i=>{wantD[i.dataset.site]=[...i.closest('.siteRow').querySelectorAll('input[data-dept]:checked')].map(x=>x.dataset.dept);});
+  const want=Object.keys(wantD); const have=S.sp.filter(x=>x.product_id===id);
+  for(const sid of want){const h=have.find(x=>x.site_id===sid);
+    if(!h) await sb.from('msds_site_products').insert({site_id:sid,product_id:id,depts:wantD[sid]});
+    else if([...(h.depts||[])].sort().join()!==[...wantD[sid]].sort().join()) await sb.from('msds_site_products').update({depts:wantD[sid]}).eq('id',h.id);}
   for(const h of have) if(!want.includes(h.site_id)&&(isAdmin()||h.site_id===S.profile.site_id)) await sb.from('msds_site_products').delete().eq('id',h.id);
   if(inQueue){toast('검수 완료');await loadAll();return true;}
   closeM('mEdit'); toast('저장했습니다.'); await loadAll(); go(S.page); return true;
@@ -774,7 +793,13 @@ $('e_saveNext').onclick=async()=>{if(await saveEdit(true,true)) reviewNext();};
 $('e_skip').onclick=()=>reviewNext();
 
 /* ===================== 경고표지 ===================== */
-function productOptions(sel){const list=S.products.filter(p=>isAdmin()||!S.profile.site_id||S.sp.some(x=>x.product_id===p.id&&x.site_id===S.profile.site_id));sel.innerHTML='<option value="">제품 선택</option>'+list.map(p=>`<option value="${p.id}">${esc(p.name)}${p.reviewed?'':' (검수대기)'}</option>`).join('');}
+function productOptions(sel){const my=S.profile.site_id&&!isAdmin()?S.profile.site_id:null;
+  const list=S.products.filter(p=>!my||S.sp.some(x=>x.product_id===p.id&&x.site_id===my)).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+  const rowsOf=p=>S.sp.filter(x=>x.product_id===p.id&&(!my||x.site_id===my));
+  const opt=p=>`<option value="${p.id}">${esc(p.name)}${p.reviewed?'':' (검수대기)'}</option>`;
+  const grp=(label,arr)=>arr.length?`<optgroup label="${label} (${arr.length})">${arr.map(opt).join('')}</optgroup>`:'';
+  const f=list.filter(p=>rowsOf(p).some(x=>(x.depts||[]).includes('시설'))), m=list.filter(p=>rowsOf(p).some(x=>(x.depts||[]).includes('미화'))), n=list.filter(p=>!f.includes(p)&&!m.includes(p));
+  sel.innerHTML='<option value="">제품 선택</option>'+grp('시설',f)+grp('미화',m)+grp('구분 미지정',n);}
 function renderLabelPage(){const cur=$('lbProduct').value;productOptions($('lbProduct'));if(cur)$('lbProduct').value=cur;renderLabel();}
 ['lbProduct','lbVol','lbUnit','lbRatio','lbH','lbD','lbShape','lbForceSmall','lbCopies'].forEach(id=>$(id).addEventListener('input',renderLabel));
 ['lbVol','lbUnit'].forEach(id=>$(id).addEventListener('input',()=>{$('lbForceSmall').checked=false;}));
