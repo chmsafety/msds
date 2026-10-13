@@ -141,7 +141,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
 <!-- MSDS 자료관리 -->
 <div class="page" id="p-msds">
   <div class="row" style="margin-bottom:12px"><h1 style="margin:0" class="auto">MSDS 자료관리</h1>
-    <div class="auto" style="margin-left:auto"><button class="btn pri" id="btnUpload">＋ MSDS PDF 올리기</button> <button class="btn" id="btnManual">직접 입력</button></div></div>
+    <div class="auto" style="margin-left:auto"><button class="btn" id="btnBatch">✨ AI 일괄 보완 추출</button> <button class="btn" id="btnReview">검수 이어하기</button> <button class="btn pri" id="btnUpload">＋ MSDS PDF 올리기</button> <button class="btn" id="btnManual">직접 입력</button></div></div>
   <div class="card">
     <div class="row">
       <input class="search" id="msSearch" placeholder="제품명·제조사·CAS 검색">
@@ -149,9 +149,9 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
       <select id="msFilter" class="auto" style="min-width:160px">
         <option value="">전체</option><option value="special">특검 대상</option><option value="managed">관리대상</option><option value="permit">허가대상</option><option value="unreviewed">검수 대기</option>
       </select>
-      <span class="mut auto" id="msCount"></span>
+      <span class="mut auto" id="msCount"></span><span class="auto hidden" id="msSelBar"><b id="msSelN"></b>건 선택 <button class="btn sm" id="msSelAi">✨ 선택 항목 AI 추출</button> <button class="btn sm ghost" id="msSelClr">선택 해제</button></span>
     </div>
-    <div class="tw" style="margin-top:10px"><table><thead><tr><th>제품명</th><th>제조/공급</th><th>그림문자</th><th>신호어</th><th>법적 구분</th><th>보유 사업장</th><th>상태</th></tr></thead><tbody id="msBody"></tbody></table></div>
+    <div class="tw" style="margin-top:10px"><table><thead><tr><th style="width:34px"><input type="checkbox" id="msAll" title="보이는 항목 전체 선택" style="width:auto"></th><th>제품명</th><th>제조/공급</th><th>그림문자</th><th>신호어</th><th>법적 구분</th><th>보유 사업장</th><th>상태</th></tr></thead><tbody id="msBody"></tbody></table></div>
   </div>
 </div>
 
@@ -238,13 +238,31 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
   <div id="upStep1">
     <div class="drop" id="drop">PDF 파일을 여기에 끌어다 놓거나 클릭해서 선택하세요<br><span class="mut">여러 개를 한 번에 올릴 수 있습니다</span><input type="file" id="fileIn" accept="application/pdf" multiple class="hidden"></div>
     <div class="row" style="margin-top:10px"><div><label class="f">보유 사업장</label><select id="upSite"></select></div><div><label class="f">사용 공정(선택)</label><input id="upProcess" placeholder="예: 도장, 세척"></div></div>
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="upAi" checked> 올린 뒤 AI 보완 추출까지 자동으로 진행</label>
     <div id="upList" style="margin-top:10px"></div>
+  </div>
+</div></div>
+
+<!-- 모달: AI 일괄 보완 추출 -->
+<div class="modal" id="mBatch"><div class="mbox wide">
+  <div class="row"><h2 class="auto" style="margin:0">✨ AI 일괄 보완 추출</h2><button class="btn ghost auto" style="margin-left:auto" id="bt_x">✕</button></div>
+  <div id="bt_setup">
+    <label class="f">대상</label>
+    <div id="bt_targets"></div>
+    <label class="chk"><input type="checkbox" id="bt_skipAi" checked> 이미 AI 추출한 항목은 건너뛰기</label>
+    <p class="mut" style="margin:8px 0 0">2건씩 동시에 처리합니다. 1건당 보통 20~40초 걸리고, 진행 중에 창을 닫아도 계속 돌아갑니다(페이지를 새로고침하면 멈춤). 결과는 <b>검수대기</b> 상태로 저장되니, 끝난 뒤 "검수 시작"으로 하나씩 확인하세요.</p>
+    <div class="row" style="margin-top:14px"><span class="mut auto" id="bt_cnt"></span><button class="btn pri auto" style="margin-left:auto" id="bt_go">추출 시작</button></div>
+  </div>
+  <div id="bt_run" class="hidden">
+    <div class="row"><b class="auto" id="bt_sum"></b><span class="auto" style="margin-left:auto"><button class="btn" id="bt_stop">중지</button> <button class="btn pri hidden" id="bt_review">검수 시작</button></span></div>
+    <div class="progress" style="margin:8px 0 12px"><i id="bt_bar"></i></div>
+    <div class="tw" style="max-height:55vh;overflow:auto"><table><tbody id="bt_list"></tbody></table></div>
   </div>
 </div></div>
 
 <!-- 모달: 제품 편집/검수 -->
 <div class="modal" id="mEdit"><div class="mbox wide">
-  <div class="row"><h2 class="auto" style="margin:0" id="edTitle">MSDS 검수</h2><span class="tag auto" id="edMethod"></span><button class="btn ghost auto" style="margin-left:auto" onclick="closeM('mEdit')">✕</button></div>
+  <div class="row"><h2 class="auto" style="margin:0" id="edTitle">MSDS 검수</h2><span class="tag auto" id="edMethod"></span><button class="btn ghost auto" style="margin-left:auto" onclick="RQ.ids=[];closeM('mEdit')">✕</button></div>
   <div id="edAlert"></div>
   <div class="grid g2">
     <div><label class="f">제품명 *</label><input id="e_name"></div>
@@ -270,8 +288,8 @@ tr.click{cursor:pointer}tr.click:hover{background:#f6fbfa}
   </div>
   <h3>보유 사업장</h3><div id="e_sites"></div>
   <div class="row" style="margin-top:16px">
-    <span class="mut auto" id="e_pdf"></span>
-    <div class="auto" style="margin-left:auto"><button class="btn" id="e_ai">✨ AI로 보완 추출</button> <button class="btn red" id="e_del">삭제</button> <button class="btn" id="e_save">저장</button> <button class="btn pri" id="e_saveOk">검수 완료 저장</button></div>
+    <span class="mut auto" id="e_pdf"></span> <span class="tag blu auto hidden" id="e_qpos"></span>
+    <div class="auto" style="margin-left:auto"><button class="btn" id="e_ai">✨ AI로 보완 추출</button> <button class="btn red" id="e_del">삭제</button> <button class="btn" id="e_save">저장</button> <button class="btn pri" id="e_saveOk">검수 완료 저장</button> <button class="btn pri hidden" id="e_saveNext">검수 완료 → 다음 ▶</button> <button class="btn hidden" id="e_skip">건너뛰기</button></div>
   </div>
 </div></div>
 
@@ -506,8 +524,18 @@ function renderMsds(){
     if(q){const hay=[p.name,p.manufacturer,...(p.components||[]).map(c=>c.name+' '+c.cas)].join(' ').toLowerCase(); if(!hay.includes(q)) return false;}
     return true;});
   $('msCount').textContent=`${list.length}건`;
-  $('msBody').innerHTML=list.map(p=>`<tr class="click" onclick="openEdit('${p.id}')"><td><b>${esc(p.name)}</b></td><td class="mut">${esc(p.manufacturer||'')}</td><td>${(p.pictograms||[]).map(c=>pictSvg(c,'pict').replace('class="pict"','class="pict" style="width:30px;height:30px"')).join('')}</td><td>${esc(p.signal_word||'')}</td><td>${legalTags(p)}</td><td class="mut">${productSites(p.id).join(', ')||'-'}</td><td>${p.reviewed?'<span class="tag grn">검수완료</span>':'<span class="tag yel">검수대기</span>'}</td></tr>`).join('')||'<tr><td colspan="7" class="mut">등록된 MSDS가 없습니다. "MSDS PDF 올리기"로 시작하세요.</td></tr>';
+  S.msList=list.map(p=>p.id); S.sel=S.sel||new Set(); for(const id of [...S.sel]) if(!S.products.some(p=>p.id===id)) S.sel.delete(id);
+  $('msBody').innerHTML=list.map(p=>`<tr class="click" onclick="openEdit('${p.id}')"><td onclick="event.stopPropagation()"><input type="checkbox" class="msChk" data-id="${p.id}" ${S.sel.has(p.id)?'checked':''} style="width:auto"></td><td><b>${esc(p.name)}</b></td><td class="mut">${esc(p.manufacturer||'')}</td><td>${(p.pictograms||[]).map(c=>pictSvg(c,'pict').replace('class="pict"','class="pict" style="width:30px;height:30px"')).join('')}</td><td>${esc(p.signal_word||'')}</td><td>${legalTags(p)}</td><td class="mut">${productSites(p.id).join(', ')||'-'}</td><td>${p.reviewed?'<span class="tag grn">검수완료</span>':'<span class="tag yel">검수대기</span>'}${p.extract_method==='ai'?' <span class="tag blu">AI</span>':''}</td></tr>`).join('')||'<tr><td colspan="8" class="mut">등록된 MSDS가 없습니다. "MSDS PDF 올리기"로 시작하세요.</td></tr>';
+  $('msBody').querySelectorAll('.msChk').forEach(c=>c.onchange=()=>{c.checked?S.sel.add(c.dataset.id):S.sel.delete(c.dataset.id);selBar();});
+  selBar();
 }
+function selBar(){const vis=S.msList||[];const n=S.sel?.size||0;$('msSelBar').classList.toggle('hidden',!n);$('msSelN').textContent=n;
+  $('msAll').checked=vis.length>0&&vis.every(id=>S.sel.has(id));$('msAll').indeterminate=!$('msAll').checked&&vis.some(id=>S.sel.has(id));}
+$('msAll').onchange=()=>{S.sel=S.sel||new Set();(S.msList||[]).forEach(id=>$('msAll').checked?S.sel.add(id):S.sel.delete(id));renderMsds();};
+$('msSelClr').onclick=()=>{S.sel.clear();renderMsds();};
+$('msSelAi').onclick=()=>openBatch('sel');
+$('btnBatch').onclick=()=>openBatch();
+$('btnReview').onclick=()=>{const q=S.products.filter(p=>!p.reviewed).map(p=>p.id);if(!q.length)return toast('검수 대기 항목이 없습니다.');startReview(q);};
 
 /* ===================== PDF 업로드 & 추출 ===================== */
 $('btnUpload').onclick=()=>{$('upList').innerHTML='';openM('mUpload');};
@@ -524,7 +552,7 @@ async function pdfText(file){
   return out.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n');
 }
 async function handleFiles(files){
-  if(!files.length) return; const siteId=$('upSite').value; const proc=$('upProcess').value.trim();
+  if(!files.length) return; const siteId=$('upSite').value; const proc=$('upProcess').value.trim(); const newIds=[];
   for(const f of files){
     const row=document.createElement('div');row.className='card';row.style.padding='10px 14px';row.innerHTML=`<div class="row"><b class="auto">${esc(f.name)}</b><span class="mut auto" id="st_${f.size}">텍스트 추출 중…</span></div><div class="progress" style="margin-top:6px"><i style="width:20%"></i></div>`;$('upList').appendChild(row);
     const st=row.querySelector('.mut'), bar=row.querySelector('.progress i');
@@ -536,11 +564,12 @@ async function handleFiles(files){
       const up=await sb.storage.from('msds-pdf').upload(path,f,{contentType:'application/pdf'}); if(up.error) throw up.error;
       const rec=productFromExtract(ex); rec.pdf_path=path; rec.extracted={text:text.slice(0,120000),ex}; rec.created_by=S.user.id;
       const ins=await sb.from('msds_products').insert(rec).select().single(); if(ins.error) throw ins.error;
-      if(siteId) await sb.from('msds_site_products').insert({site_id:siteId,product_id:ins.data.id,process_name:proc||null});
+      if(siteId) await sb.from('msds_site_products').insert({site_id:siteId,product_id:ins.data.id,process_name:proc||null}); newIds.push(ins.data.id);
       bar.style.width='100%'; st.innerHTML=`<span class="tag grn">등록</span> ${esc(ex.name||'(제품명 미확인)')} <button class="btn sm" onclick="openEdit('${ins.data.id}')">검수</button>`;
     }catch(e){console.error(e);st.innerHTML=`<span class="tag red">실패</span> ${esc(e.message)}`;}
   }
   await loadAll(); renderMsds();
+  if(newIds.length&&$('upAi').checked){closeM('mUpload');go('msds');runBatch(newIds);}
 }
 function productFromExtract(ex){
   if((!ex.pictograms||!ex.pictograms.length)&&ex.hcodes?.length){let pics=uniq(ex.hcodes.map(pictFromH));if(pics.includes('GHS06'))pics=pics.filter(c=>c!=='GHS07');ex.pictograms=pics;}
@@ -618,7 +647,9 @@ function ruleExtract(text){
 
 /* ===================== 편집/검수 모달 ===================== */
 let ED=null;
-function openEdit(id){
+function openEdit(id,keepQ){
+  if(!keepQ&&id&&RQ.ids.length&&RQ.ids[RQ.i]!==id){const j=RQ.ids.indexOf(id);if(j<0)RQ.ids=[];else RQ.i=j;} if(!id)RQ.ids=[];
+  const inQ=RQ.ids.length>0; $('e_qpos').classList.toggle('hidden',!inQ); $('e_saveNext').classList.toggle('hidden',!inQ); $('e_skip').classList.toggle('hidden',!inQ); $('e_saveOk').classList.toggle('hidden',inQ); if(inQ)$('e_qpos').textContent=`검수 ${RQ.i+1} / ${RQ.ids.length}`;
   ED=id?structuredClone(S.products.find(p=>p.id===id)):{components:[],pictograms:[],ppe:[],hazard_statements:[],precautionary:[],reviewed:false,extract_method:'manual'};
   $('edTitle').textContent=id?'MSDS 검수 / 수정':'MSDS 직접 입력'; $('edMethod').textContent={rule:'규칙 추출',ai:'AI 추출',manual:'직접 입력'}[ED.extract_method]||''; $('edAlert').innerHTML='';
   if(id&&ED.extracted?.text&&ED.extracted.text.replace(/\s/g,'').length<200) $('edAlert').innerHTML='<div class="alert">PDF에서 텍스트를 읽지 못했습니다(스캔본). "AI로 보완 추출"을 눌러 보세요.</div>';
@@ -634,7 +665,7 @@ function openEdit(id){
   $('e_sites').innerHTML=S.sites.map(s=>`<label class="chk"><input type="checkbox" data-site="${s.id}" ${mySites.includes(s.id)?'checked':''} ${isAdmin()||s.id===S.profile.site_id?'':'disabled'}>${esc(s.name)}</label>`).join('')||'<span class="mut">설정에서 사업장을 먼저 등록하세요.</span>';
   $('e_pdf').innerHTML=ED.pdf_path?`<a href="#" onclick="openPdf('${ED.pdf_path}');return false">📄 원본 PDF 보기</a>`:'';
   $('e_del').classList.toggle('hidden',!id||!isAdmin()); $('e_ai').classList.toggle('hidden',!ED.extracted?.text&&!ED.pdf_path);
-  openM('mEdit');
+  openM('mEdit'); $('mEdit').scrollTop=0;
 }
 async function openPdf(path){const {data,error}=await sb.storage.from('msds-pdf').createSignedUrl(path,600);if(error)return toast(error.message);window.open(data.signedUrl,'_blank');}
 function renderComps(){$('e_comps').innerHTML=(ED.components||[]).map((c,i)=>`<tr><td><input value="${esc(c.name)}" data-ci="${i}" data-k="name"></td><td><input value="${esc(c.cas)}" data-ci="${i}" data-k="cas" style="width:130px"></td><td><input value="${esc(c.pct)}" data-ci="${i}" data-k="pct" style="width:90px"></td><td><button class="btn sm" onclick="ED.components.splice(${i},1);renderComps()">✕</button></td></tr>`).join('');
@@ -651,31 +682,96 @@ function collectEdit(){
   const nf=$('e_other').value.match(/보건\s*[:：]\s*(\d).*화재\s*[:：]\s*(\d).*반응성\s*[:：]\s*(\d)/); if(nf)p.nfpa={health:+nf[1],fire:+nf[2],reactivity:+nf[3]}; if(nf)p.other_hazard=$('e_other').value.replace(/NFPA.*$/m,'').trim()||null;
   return p;
 }
-async function saveEdit(reviewed){
-  const p=collectEdit(); if(!p.name) return toast('제품명을 입력하세요.'); if(reviewed!==null)p.reviewed=reviewed;
+async function saveEdit(reviewed,inQueue){
+  const p=collectEdit(); if(!p.name){toast('제품명을 입력하세요.');return false;} if(reviewed!==null)p.reviewed=reviewed;
   let id=ED.id;
-  if(id){const r=await sb.from('msds_products').update(p).eq('id',id);if(r.error)return toast(r.error.message);}
-  else{p.created_by=S.user.id;p.extract_method='manual';const r=await sb.from('msds_products').insert(p).select().single();if(r.error)return toast(r.error.message);id=r.data.id;}
+  if(id){const r=await sb.from('msds_products').update(p).eq('id',id);if(r.error){toast(r.error.message);return false;}}
+  else{p.created_by=S.user.id;p.extract_method='manual';const r=await sb.from('msds_products').insert(p).select().single();if(r.error){toast(r.error.message);return false;}id=r.data.id;}
   const want=[...$('e_sites').querySelectorAll('input:checked')].map(i=>i.dataset.site); const have=S.sp.filter(x=>x.product_id===id);
   for(const sid of want) if(!have.some(h=>h.site_id===sid)) await sb.from('msds_site_products').insert({site_id:sid,product_id:id});
   for(const h of have) if(!want.includes(h.site_id)&&(isAdmin()||h.site_id===S.profile.site_id)) await sb.from('msds_site_products').delete().eq('id',h.id);
-  closeM('mEdit'); toast('저장했습니다.'); await loadAll(); go(S.page);
+  if(inQueue){toast('검수 완료');await loadAll();return true;}
+  closeM('mEdit'); toast('저장했습니다.'); await loadAll(); go(S.page); return true;
 }
 $('e_save').onclick=()=>saveEdit(null); $('e_saveOk').onclick=()=>saveEdit(true);
 $('e_del').onclick=async()=>{if(!confirm('이 MSDS를 삭제할까요?'))return;if(ED.pdf_path)await sb.storage.from('msds-pdf').remove([ED.pdf_path]);const r=await sb.from('msds_products').delete().eq('id',ED.id);if(r.error)return toast(r.error.message);closeM('mEdit');await loadAll();go(S.page);};
+/* ---- AI 보완 추출 (단건·일괄 공용) ---- */
+function b64(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s);}
+async function aiExtractProduct(prod){
+  let text=prod.extracted?.text||''; let pdf_base64=null;
+  if(text.replace(/\s/g,'').length<200){if(!prod.pdf_path)throw new Error('PDF 텍스트·원본이 없습니다');const {data,error}=await sb.storage.from('msds-pdf').download(prod.pdf_path);if(error)throw error;pdf_base64=b64(await data.arrayBuffer());}
+  const data=await fnCall(CONFIG.EXTRACT_FN,{text,pdf_base64});
+  const ex=data.result; if(!ex) throw new Error('AI 응답이 비어 있습니다');
+  const p=productFromExtract(ex); p.extract_method='ai'; delete p.reviewed;
+  const extracted={...(prod.extracted||{}),ai:ex};
+  if(prod.id){const r=await sb.from('msds_products').update({...p,extracted}).eq('id',prod.id);if(r.error)throw r.error;}
+  return {...p,extracted};
+}
 $('e_ai').onclick=async()=>{
   $('e_ai').disabled=true;$('e_ai').textContent='AI 추출 중…';
   try{
-    let text=ED.extracted?.text||''; let pdf_base64=null;
-    if(text.replace(/\s/g,'').length<200&&ED.pdf_path){const {data,error}=await sb.storage.from('msds-pdf').download(ED.pdf_path);if(error)throw error;const b=await data.arrayBuffer();pdf_base64=btoa(String.fromCharCode(...new Uint8Array(b)));}
-    const {data,error}=await sb.functions.invoke(CONFIG.EXTRACT_FN,{body:{text,pdf_base64}}); if(error){let m=error.message;try{const j=await error.context.json();if(j?.error)m=j.error;}catch(_){}throw new Error(m);} if(data?.error) throw new Error(data.error);
-    const ex=data.result; const p=productFromExtract(ex); p.extract_method='ai'; delete p.reviewed;
-    const keep=['pictograms','ppe']; Object.assign(ED,p); ED.extracted={...(ED.extracted||{}),ai:ex};
-    if(ED.id){await sb.from('msds_products').update({...p,extracted:ED.extracted}).eq('id',ED.id);await loadAll();}
-    openEdit(ED.id); $('edAlert').innerHTML='<div class="alert grn">AI 추출 결과를 반영했습니다. 내용을 확인하고 검수 완료를 눌러 주세요.</div>'; toast('AI 추출 완료');
+    const p=await aiExtractProduct(ED); Object.assign(ED,p); if(ED.id) await loadAll();
+    openEdit(ED.id,true); if(!ED.id){/* 신규는 저장 전 */} $('edAlert').innerHTML='<div class="alert grn">AI 추출 결과를 반영했습니다. 내용을 확인하고 검수 완료를 눌러 주세요.</div>'; toast('AI 추출 완료');
   }catch(e){console.error(e);toast('AI 추출 실패: '+(e.message||e));}
   $('e_ai').disabled=false;$('e_ai').textContent='✨ AI로 보완 추출';
 };
+
+/* ---- 일괄 추출 ---- */
+const BT={running:false,stop:false,items:[],done:0,ok:0,fail:0};
+function openBatch(mode){
+  if(BT.running){openM('mBatch');return;}
+  const sel=[...(S.sel||[])];
+  const opts=[['sel','선택한 항목',sel],['unrev','검수 대기 전체',S.products.filter(p=>!p.reviewed).map(p=>p.id)],['vis','현재 목록에 보이는 항목',S.msList||[]],['all','전체 MSDS',S.products.map(p=>p.id)]].filter(o=>o[0]!=='sel'||sel.length);
+  const def=mode||(sel.length?'sel':'unrev');
+  $('bt_targets').innerHTML=opts.map(o=>`<label class="chk" style="display:flex"><input type="radio" name="bt_t" value="${o[0]}" ${o[0]===def?'checked':''}>${o[1]} <span class="mut">(${o[2].length}건)</span></label>`).join('');
+  BT.opts=Object.fromEntries(opts.map(o=>[o[0],o[2]]));
+  const upd=()=>{const ids=btTargets();$('bt_cnt').textContent=`처리 대상 ${ids.length}건`;$('bt_go').disabled=!ids.length;};
+  $('bt_targets').querySelectorAll('input').forEach(i=>i.onchange=upd); $('bt_skipAi').onchange=upd; upd();
+  $('bt_setup').classList.remove('hidden');$('bt_run').classList.add('hidden');openM('mBatch');
+}
+function btTargets(){const k=document.querySelector('input[name=bt_t]:checked')?.value;let ids=BT.opts?.[k]||[];
+  if($('bt_skipAi').checked) ids=ids.filter(id=>S.products.find(p=>p.id===id)?.extract_method!=='ai');
+  return ids.filter(id=>{const p=S.products.find(x=>x.id===id);return p&&(p.pdf_path||p.extracted?.text);});}
+$('bt_go').onclick=()=>runBatch(btTargets());
+$('bt_x').onclick=()=>closeM('mBatch');
+$('bt_stop').onclick=()=>{BT.stop=true;$('bt_stop').disabled=true;$('bt_stop').textContent='중지 중…';};
+$('bt_review').onclick=()=>{const q=BT.items.filter(i=>i.st==='ok').map(i=>i.id).filter(id=>!S.products.find(p=>p.id===id)?.reviewed);closeM('mBatch');if(!q.length)return toast('검수할 항목이 없습니다.');startReview(q);};
+function btRender(){
+  const n=BT.items.length;$('bt_bar').style.width=(n?BT.done/n*100:0)+'%';
+  $('bt_sum').textContent=`${BT.done} / ${n} 처리 · 성공 ${BT.ok} · 실패 ${BT.fail}`+(BT.running?'':(BT.stop?' — 중지됨':' — 완료'));
+  $('bt_list').innerHTML=BT.items.map(i=>`<tr><td>${esc(i.name)}</td><td style="width:40%">${{wait:'<span class="mut">대기</span>',run:'<span class="tag blu">추출 중…</span>',ok:'<span class="tag grn">완료</span> <span class="mut">'+esc(i.note||'')+'</span>',fail:'<span class="tag red">실패</span> <span class="mut">'+esc(i.note||'')+'</span>',skip:'<span class="mut">중지로 건너뜀</span>'}[i.st]}</td></tr>`).join('');
+  $('bt_stop').classList.toggle('hidden',!BT.running);$('bt_review').classList.toggle('hidden',BT.running||!BT.ok);
+  $('btnBatch').textContent=BT.running?`✨ AI 추출 중 ${BT.done}/${n}`:'✨ AI 일괄 보완 추출';
+}
+async function runBatch(ids){
+  if(BT.running) return toast('이미 일괄 추출이 진행 중입니다.'); if(!ids.length) return toast('처리할 항목이 없습니다.');
+  Object.assign(BT,{running:true,stop:false,done:0,ok:0,fail:0,items:ids.map(id=>({id,name:S.products.find(p=>p.id===id)?.name||id,st:'wait'}))});
+  $('bt_setup').classList.add('hidden');$('bt_run').classList.remove('hidden');$('bt_stop').disabled=false;$('bt_stop').textContent='중지';openM('mBatch');btRender();
+  let k=0;
+  const worker=async()=>{while(k<BT.items.length){const it=BT.items[k++];if(BT.stop){it.st='skip';continue;}
+    it.st='run';btRender();
+    const prod=S.products.find(p=>p.id===it.id);
+    for(let attempt=0;;attempt++){
+      try{const p=await aiExtractProduct(prod);Object.assign(prod,p);it.st='ok';it.name=p.name||it.name;it.note=(p.components?.length?`성분 ${p.components.length}종`:'')+(p.special_exam?' · 특검':'');BT.ok++;break;}
+      catch(e){const m=String(e.message||e);if(attempt<1&&/429|529|overload|rate|timeout|fetch/i.test(m)){await new Promise(r=>setTimeout(r,8000));continue;}it.st='fail';it.note=m.slice(0,120);BT.fail++;break;}
+    }
+    BT.done++;btRender();}};
+  await Promise.all([worker(),worker()]);
+  BT.running=false;BT.done=BT.items.filter(i=>i.st==='ok'||i.st==='fail').length;btRender();
+  await loadAll(); if(S.page==='msds'||S.page==='dash') go(S.page);
+  toast(`AI 일괄 추출 ${BT.stop?'중지':'완료'} — 성공 ${BT.ok}건, 실패 ${BT.fail}건`);
+}
+
+/* ---- 연속 검수 ---- */
+const RQ={ids:[],i:0};
+function startReview(ids){RQ.ids=ids;RQ.i=0;openEdit(ids[0]);}
+function reviewNext(){
+  RQ.i++; while(RQ.i<RQ.ids.length&&!S.products.some(p=>p.id===RQ.ids[RQ.i]&&!p.reviewed)) RQ.i++;
+  if(RQ.i>=RQ.ids.length){RQ.ids=[];closeM('mEdit');toast('검수 대상을 모두 확인했습니다.');go(S.page);return;}
+  openEdit(RQ.ids[RQ.i]);
+}
+$('e_saveNext').onclick=async()=>{if(await saveEdit(true,true)) reviewNext();};
+$('e_skip').onclick=()=>reviewNext();
 
 /* ===================== 경고표지 ===================== */
 function productOptions(sel){const list=S.products.filter(p=>isAdmin()||!S.profile.site_id||S.sp.some(x=>x.product_id===p.id&&x.site_id===S.profile.site_id));sel.innerHTML='<option value="">제품 선택</option>'+list.map(p=>`<option value="${p.id}">${esc(p.name)}${p.reviewed?'':' (검수대기)'}</option>`).join('');}
