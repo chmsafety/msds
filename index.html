@@ -144,7 +144,7 @@ img.pict,img.lp,.pg img{-webkit-print-color-adjust:exact;print-color-adjust:exac
 <!-- MSDS 자료관리 -->
 <div class="page" id="p-msds">
   <div class="row" style="margin-bottom:12px"><h1 style="margin:0" class="auto">MSDS 자료관리</h1>
-    <div class="auto" style="margin-left:auto"><button class="btn" id="btnBatch">✨ AI 일괄 보완 추출</button> <button class="btn" id="btnReview">검수 이어하기</button> <button class="btn pri" id="btnUpload">＋ MSDS PDF 올리기</button> <button class="btn" id="btnManual">직접 입력</button></div></div>
+    <div class="auto" style="margin-left:auto"><button class="btn" id="btnBatch">✨ AI 일괄 보완 추출</button> <button class="btn" id="btnReview">검수 이어하기</button> <button class="btn" id="btnBulkOk" title="현재 목록에 보이는 검수대기 항목을 한 번에 검수 완료로 바꿉니다">✔ 일괄 검수 완료</button> <button class="btn pri" id="btnUpload">＋ MSDS PDF 올리기</button> <button class="btn" id="btnManual">직접 입력</button></div></div>
   <div class="card">
     <div class="row">
       <input class="search" id="msSearch" placeholder="제품명·제조사·CAS 검색">
@@ -153,7 +153,7 @@ img.pict,img.lp,.pg img{-webkit-print-color-adjust:exact;print-color-adjust:exac
       <select id="msFilter" class="auto" style="min-width:140px;width:auto">
         <option value="">전체</option><option value="special">특검 대상</option><option value="managed">관리대상</option><option value="permit">허가대상</option><option value="unreviewed">검수 대기</option>
       </select>
-      <span class="mut auto" id="msCount"></span><button class="btn sm auto" id="msCsv" title="현재 목록을 엑셀(CSV)로 내려받기">⬇ 목록 내려받기</button><span class="auto hidden" id="msSelBar"><b id="msSelN"></b>건 선택 <button class="btn sm" id="msSelAi">✨ 선택 항목 AI 추출</button> <button class="btn sm ghost" id="msSelClr">선택 해제</button></span>
+      <span class="mut auto" id="msCount"></span><button class="btn sm auto" id="msCsv" title="현재 목록을 엑셀(CSV)로 내려받기">⬇ 목록 내려받기</button><span class="auto hidden" id="msSelBar"><b id="msSelN"></b>건 선택 <button class="btn sm" id="msSelAi">✨ 선택 항목 AI 추출</button> <button class="btn sm" id="msSelOk">✔ 선택 항목 검수 완료</button> <button class="btn sm ghost" id="msSelClr">선택 해제</button></span>
     </div>
     <div class="tw" style="margin-top:10px"><table><thead><tr><th style="width:34px"><input type="checkbox" id="msAll" title="보이는 항목 전체 선택" style="width:auto"></th><th>제품명</th><th>제조/공급</th><th>그림문자</th><th>신호어</th><th>법적 구분</th><th>보유 사업장 · 구분</th><th>상태</th></tr></thead><tbody id="msBody"></tbody></table></div>
   </div>
@@ -549,6 +549,19 @@ $('msCsv').onclick=()=>{const site=$('msSite').value,dept=$('msDept').value;cons
   const nm=['MSDS목록',site?siteName(site):'전체',dept==='none'?'구분미지정':(dept||''),todayStr()].filter(Boolean).join('_');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download=nm+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);};
 $('msSelAi').onclick=()=>openBatch('sel');
+async function bulkReviewOk(ids,scope){
+  const t=[...new Set(ids)].filter(id=>{const p=S.products.find(x=>x.id===id);return p&&!p.reviewed;});
+  if(!t.length)return toast(scope+'에 검수대기 항목이 없습니다.');
+  if(!confirm(`${scope}의 검수대기 ${t.length}건을 모두 "검수완료"로 바꿀까요?\n(내용 확인 없이 상태만 바뀝니다. 필요하면 개별 편집창에서 다시 수정할 수 있습니다.)`))return;
+  let ok=0;
+  for(let i=0;i<t.length;i+=100){const r=await sb.from('msds_products').update({reviewed:true}).in('id',t.slice(i,i+100)).select('id');
+    if(r.error){toast('오류: '+r.error.message);break;} ok+=(r.data||[]).length;}
+  await loadAll(); renderMsds();
+  toast(ok===t.length?`${ok}건 검수 완료 처리했습니다.`:`${ok}/${t.length}건만 처리됐습니다(권한이 없는 항목 제외).`);
+}
+$('msSelOk').onclick=async()=>{await bulkReviewOk([...(S.sel||[])],'선택한 항목');S.sel.clear();renderMsds();};
+$('btnBulkOk').onclick=()=>{const filtered=$('msSearch').value.trim()||$('msSite').value||$('msDept').value||($('msFilter').value&&$('msFilter').value!=='unreviewed');
+  bulkReviewOk(S.msList||[],filtered?'현재 목록':'전체 MSDS');};
 $('btnBatch').onclick=()=>openBatch();
 $('btnReview').onclick=()=>{const q=S.products.filter(p=>!p.reviewed).map(p=>p.id);if(!q.length)return toast('검수 대기 항목이 없습니다.');startReview(q);};
 
